@@ -61,10 +61,11 @@ async function convertFile(options) {
   const tempOutputDir = path.join(options.outputDir, '_output_' + Date.now());
   await fs.promises.mkdir(tempOutputDir, { recursive: true });
 
-  const typeCode = options.outputFormat === 'DWG' ? '0' : '2';
+  const formatString = options.outputFormat; // Must be "DWG" or "DXF", not numeric codes
   const auditFlag = options.audit ? '1' : '0';
 
-  let command = `"${odaPath}" "${tempSourceDir}" "${tempOutputDir}" "${options.targetVersion}" "${typeCode}" "0" "${auditFlag}"`;
+  // Format: ODAFileConverter InputDir OutputDir Version OutputFormat Recurse Audit [InputFilter]
+  let command = `"${odaPath}" "${tempSourceDir}" "${tempOutputDir}" "${options.targetVersion}" "${formatString}" "0" "${auditFlag}"`;
 
   if (process.platform === 'linux') {
     // Rely on the background Xvfb server started in Dockerfile
