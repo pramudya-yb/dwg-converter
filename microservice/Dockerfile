@@ -30,21 +30,28 @@ RUN wget -O /tmp/odafileconverter.deb "https://www.opendesign.com/guestfiles/get
 
 ENV PATH="/usr/bin:${PATH}"
 
+# Hugging Face Spaces requires running as a non-root user with UID 1000
+RUN useradd -m -u 1000 user
+
 # Set up working directory for the microservice
 WORKDIR /app
+RUN chown -R user:user /app
 
 # Copy package files
-COPY package*.json ./
+COPY --chown=user:user package*.json ./
 
 # Install npm dependencies
 RUN npm install
 
 # Copy the rest of the microservice
-COPY . .
+COPY --chown=user:user . .
 
-# Expose port
-EXPOSE 8080
-ENV PORT=8080
+# Switch to the non-root user
+USER user
+
+# Expose port (Hugging Face Spaces requires 7860)
+EXPOSE 7860
+ENV PORT=7860
 
 # Run the Express server
 CMD ["node", "server.js"]
