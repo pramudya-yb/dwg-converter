@@ -149,7 +149,6 @@ export default function FileUploader({ files, onFilesAdded, onFileRemove, onClea
             </>
           )}
         </div>
-      </div>
         <input
           ref={fileInputRef}
           type="file"
