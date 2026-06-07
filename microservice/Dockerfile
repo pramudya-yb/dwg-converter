@@ -88,5 +88,5 @@ USER node
 EXPOSE 7860
 ENV PORT=7860
 
-# Run the Express server
-CMD ["node", "server.js"]
+# Run Xvfb in the background and start the Express server
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1024x768x24 -ac -nolisten tcp & export DISPLAY=:99 && node server.js"]

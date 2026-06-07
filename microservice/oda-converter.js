@@ -67,7 +67,8 @@ async function convertFile(options) {
   let command = `"${odaPath}" "${tempSourceDir}" "${tempOutputDir}" "${options.targetVersion}" "${typeCode}" "0" "${auditFlag}"`;
 
   if (process.platform === 'linux') {
-    command = `xvfb-run -a env QT_DEBUG_PLUGINS=1 ${command}`;
+    // Rely on the background Xvfb server started in Dockerfile
+    command = `env DISPLAY=:99 ${command}`;
   }
 
   try {
@@ -97,7 +98,7 @@ async function convertFile(options) {
       await fs.promises.rm(tempOutputDir, { recursive: true, force: true });
     } catch {}
     
-    return { success: false, error: err.message + '\nSTDERR: ' + (err.stderr || '') + '\nSTDOUT: ' + (err.stdout || ''), duration: Date.now() - startTime };
+    return { success: false, error: err.message + '\nExitCode: ' + (err.code || 'N/A') + '\nSignal: ' + (err.signal || 'N/A') + '\nSTDERR: ' + (err.stderr || '') + '\nSTDOUT: ' + (err.stdout || ''), duration: Date.now() - startTime };
   }
 }
 

@@ -198,14 +198,7 @@ export default function Home() {
     <div className="page-wrapper">
       <Header />
 
-      <main className="container">
-        {/* Hero Section */}
-        <section className="hero">
-          <h1 className="hero-title">AutoCAD Version Converter</h1>
-          <p className="hero-subtitle">
-            Convert DWG and DXF files between different AutoCAD formats safely and securely.
-          </p>
-        </section>
+      <main className="container" style={{ paddingTop: '40px' }}>
 
         {/* ODA Setup Guide */}
         {odaInstalled === false && <SetupGuide />}
