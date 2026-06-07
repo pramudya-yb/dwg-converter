@@ -19,6 +19,11 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon-x11-0 \
     libglib2.0-0 \
     libdbus-1-3 \
+    libxcb-xinerama0 \
+    libxcb-keysyms1 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-render-util0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix potential missing symlink for libxcb-util.so.0 required by older QT apps

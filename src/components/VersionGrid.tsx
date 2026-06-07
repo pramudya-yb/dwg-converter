@@ -30,37 +30,24 @@ interface VersionGridProps {
 
 export default function VersionGrid({ selectedVersion, onSelectVersion }: VersionGridProps) {
   return (
-    <div className="section">
-      <div className="section-header">
-        <h2 className="section-title">
-          <span className="section-title-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="4 17 10 11 4 5" />
-              <line x1="12" y1="19" x2="20" y2="19" />
-            </svg>
-          </span>
-          Pilih Versi Target
-        </h2>
-      </div>
-      <div className="version-grid">
+    <div className="custom-select-wrapper">
+      <select
+        className="custom-select"
+        value={selectedVersion || ''}
+        onChange={(e) => onSelectVersion(e.target.value)}
+        aria-label="Pilih Versi Target"
+      >
+        <option value="" disabled>-- Pilih Versi AutoCAD --</option>
         {VERSIONS.map((version) => (
-          <button
-            key={version.code}
-            className={`version-card ${selectedVersion === version.code ? 'selected' : ''}`}
-            onClick={() => onSelectVersion(version.code)}
-            aria-pressed={selectedVersion === version.code}
-            aria-label={`${version.name} (${version.year})`}
-          >
-            <div className="version-card-name">{version.name}</div>
-            <div className="version-card-code">{version.acadver}</div>
-            <div className="version-card-year">{version.year}</div>
-            <div className="version-card-check">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-          </button>
+          <option key={version.code} value={version.code}>
+            {version.name} ({version.year}) - {version.acadver}
+          </option>
         ))}
+      </select>
+      <div className="custom-select-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </div>
     </div>
   );

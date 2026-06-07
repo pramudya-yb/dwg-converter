@@ -201,10 +201,9 @@ export default function Home() {
       <main className="container">
         {/* Hero Section */}
         <section className="hero">
-          <h1 className="hero-title">Konversi File AutoCAD<br />ke Semua Versi</h1>
+          <h1 className="hero-title">AutoCAD Version Converter</h1>
           <p className="hero-subtitle">
-            Konversi file DWG & DXF ke berbagai versi AutoCAD dengan mudah.
-            Upload, pilih versi target, dan download hasilnya.
+            Convert DWG and DXF files between different AutoCAD formats safely and securely.
           </p>
         </section>
 
@@ -224,149 +223,163 @@ export default function Home() {
         {/* Main converter UI */}
         {odaInstalled !== null && (
           <>
-            {/* File Upload */}
-            <section className="section" style={{ animationDelay: '0.1s' }}>
-              <div className="section-header">
-                <h2 className="section-title">
-                  <span className="section-title-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                  </span>
-                  Upload File
-                </h2>
-                {files.length > 0 && (
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    {files.length} file{files.length > 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-              <FileUploader
-                files={files}
-                onFilesAdded={handleFilesAdded}
-                onFileRemove={handleFileRemove}
-              />
-            </section>
-
-            {/* Preview (for DXF files) */}
-            {previewFile && (
-              <FilePreview file={previewFile} />
-            )}
-
-            {/* Version Selection */}
-            <VersionGrid
-              selectedVersion={selectedVersion}
-              onSelectVersion={setSelectedVersion}
-            />
-
-            {/* Format Toggle */}
-            <FormatToggle
-              value={outputFormat}
-              onChange={setOutputFormat}
-            />
-
-            {/* Convert Button */}
-            <div className="convert-section">
-              <button
-                className="convert-btn"
-                disabled={!canConvert}
-                onClick={handleConvert}
-              >
-                {isConverting ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-                    <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                    Mengkonversi {files.length} file...
-                  </span>
-                ) : (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="16 16 12 12 8 16" />
-                      <line x1="12" y1="12" x2="12" y2="21" />
-                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-                    </svg>
-                    Konversi {files.length > 0 ? `${files.length} File` : 'File'}
-                    {selectedVersion ? ` → ${selectedVersion.replace('ACAD', '')}` : ''}
-                    {` (${outputFormat})`}
-                  </span>
-                )}
-              </button>
-
-              {!odaInstalled && files.length > 0 && (
-                <p style={{ marginTop: '12px', color: 'var(--warning)', fontSize: '0.85rem' }}>
-                  ⚠️ ODA File Converter belum terinstall. Install terlebih dahulu untuk mengkonversi file.
-                </p>
-              )}
-
-              {!selectedVersion && files.length > 0 && (
-                <p style={{ marginTop: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  Pilih versi target di atas untuk melanjutkan
-                </p>
-              )}
-            </div>
-
-            {/* Error Message */}
-            {errorMsg && (
-              <div className="download-section">
-                <div className="download-card" style={{ borderLeftColor: 'var(--error)' }}>
-                  <div className="download-card-header">
-                    <div className="download-card-icon" style={{ background: 'rgba(255, 68, 102, 0.15)' }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="15" y1="9" x2="9" y2="15" />
-                        <line x1="9" y1="9" x2="15" y2="15" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="download-card-title" style={{ color: 'var(--error)' }}>Konversi Gagal</div>
-                      <div className="download-card-size">{errorMsg}</div>
-                    </div>
+            <div className="converter-layout">
+              {/* Left Column: Upload & Preview */}
+              <div className="converter-left">
+                {/* File Upload */}
+                <section className="section" style={{ marginTop: 0, animationDelay: '0.1s' }}>
+                  <div className="section-header">
+                    <h2 className="section-title">
+                      <span className="section-title-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                      </span>
+                      Upload Files
+                    </h2>
+                    {files.length > 0 && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        {files.length} file{files.length > 1 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
-                </div>
-              </div>
-            )}
+                  <FileUploader
+                    files={files}
+                    onFilesAdded={handleFilesAdded}
+                    onFileRemove={handleFileRemove}
+                  />
+                </section>
 
-            {/* Download Section */}
-            {conversionDone && downloadUrl && (
-              <div className="download-section">
-                <div className="download-card">
-                  <div className="download-card-header">
-                    <div className="download-card-icon">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="download-card-title">Konversi Berhasil!</div>
-                      <div className="download-card-size">
-                        {files.filter(f => f.status === 'done').length} dari {files.length} file berhasil dikonversi
+                {/* Preview (for DXF files) */}
+                {previewFile && (
+                  <div style={{ marginTop: '32px' }}>
+                    <FilePreview file={previewFile} />
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Settings & Conversion */}
+              <div className="converter-right">
+                {/* Version Selection */}
+                <div>
+                  <div className="settings-group-title">Target Version</div>
+                  <VersionGrid
+                    selectedVersion={selectedVersion}
+                    onSelectVersion={setSelectedVersion}
+                  />
+                </div>
+
+                {/* Format Toggle */}
+                <div>
+                  <div className="settings-group-title">Output Format</div>
+                  <FormatToggle
+                    value={outputFormat}
+                    onChange={setOutputFormat}
+                  />
+                </div>
+
+                {/* Convert Button */}
+                <div className="convert-section" style={{ marginTop: 0 }}>
+                  <button
+                    className="convert-btn"
+                    disabled={!canConvert}
+                    onClick={handleConvert}
+                  >
+                    {isConverting ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                        <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
+                        Converting...
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="16 16 12 12 8 16" />
+                          <line x1="12" y1="12" x2="12" y2="21" />
+                          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                        </svg>
+                        Convert
+                      </span>
+                    )}
+                  </button>
+
+                  {!odaInstalled && files.length > 0 && (
+                    <p style={{ marginTop: '12px', color: 'var(--warning)', fontSize: '0.85rem' }}>
+                      ⚠️ ODA File Converter belum terinstall. Install terlebih dahulu untuk mengkonversi file.
+                    </p>
+                  )}
+
+                  {!selectedVersion && files.length > 0 && (
+                    <p style={{ marginTop: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      Pilih versi target di atas untuk melanjutkan
+                    </p>
+                  )}
+                </div>
+
+                {/* Error Message */}
+                {errorMsg && (
+                  <div className="download-section" style={{ marginTop: 0 }}>
+                    <div className="download-card" style={{ borderLeftColor: 'var(--error)' }}>
+                      <div className="download-card-header">
+                        <div className="download-card-icon" style={{ background: 'rgba(255, 68, 102, 0.15)' }}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="download-card-title" style={{ color: 'var(--error)' }}>Konversi Gagal</div>
+                          <div className="download-card-size">{errorMsg}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-                    <button className="download-btn" onClick={handleDownload}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Download {downloadName}
-                      </span>
-                    </button>
-                    <button
-                      className="download-btn"
-                      onClick={handleReset}
-                      style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                    >
-                      Konversi Baru
-                    </button>
+                )}
+
+                {/* Download Section */}
+                {conversionDone && downloadUrl && (
+                  <div className="download-section" style={{ marginTop: 0 }}>
+                    <div className="download-card">
+                      <div className="download-card-header">
+                        <div className="download-card-icon">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="download-card-title">Konversi Berhasil!</div>
+                          <div className="download-card-size">
+                            {files.filter(f => f.status === 'done').length} dari {files.length} file berhasil dikonversi
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                        <button className="download-btn" onClick={handleDownload}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="7 10 12 15 17 10" />
+                              <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            Download {downloadName}
+                          </span>
+                        </button>
+                        <button
+                          className="download-btn"
+                          onClick={handleReset}
+                          style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                        >
+                          Konversi Baru
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            )}
+            </div>
           </>
         )}
       </main>

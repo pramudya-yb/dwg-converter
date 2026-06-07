@@ -67,11 +67,11 @@ async function convertFile(options) {
   let command = `"${odaPath}" "${tempSourceDir}" "${tempOutputDir}" "${options.targetVersion}" "${typeCode}" "0" "${auditFlag}"`;
 
   if (process.platform === 'linux') {
-    command = `xvfb-run -a ${command}`;
+    command = `xvfb-run -a env QT_DEBUG_PLUGINS=1 ${command}`;
   }
 
   try {
-    await execAsync(command, { timeout: 120000 });
+    const { stdout, stderr } = await execAsync(command, { timeout: 120000 });
 
     const files = await fs.promises.readdir(tempOutputDir);
     let outputFile = files.find(f => f.toLowerCase().endsWith(outputExt));
@@ -97,7 +97,7 @@ async function convertFile(options) {
       await fs.promises.rm(tempOutputDir, { recursive: true, force: true });
     } catch {}
     
-    return { success: false, error: err.message || 'Unknown error', duration: Date.now() - startTime };
+    return { success: false, error: err.message + '\nSTDERR: ' + (err.stderr || '') + '\nSTDOUT: ' + (err.stdout || ''), duration: Date.now() - startTime };
   }
 }
 
