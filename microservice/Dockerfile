@@ -21,33 +21,34 @@ RUN apt-get update && apt-get install -y \
 RUN cd /usr/lib/x86_64-linux-gnu && \
     if [ ! -f libxcb-util.so.0 ] && [ -f libxcb-util.so.1 ]; then ln -s libxcb-util.so.1 libxcb-util.so.0; fi
 
-# 2. Download and install ODA File Converter
-RUN wget -O /tmp/odafileconverter.deb "https://www.opendesign.com/guestfiles/get?filename=ODAFileConverter_QT6_lnxX64_8.3dll_25.12.deb" && \
-    apt-get update && \
+# 2. Install ODA File Converter
+# Since the official URL changes frequently, we expect the .deb file to be in this folder
+COPY ODAFileConverter*.deb /tmp/odafileconverter.deb
+RUN apt-get update && \
     apt-get install -y /tmp/odafileconverter.deb || apt-get install -y -f && \
     rm /tmp/odafileconverter.deb && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/usr/bin:${PATH}"
 
-# Hugging Face Spaces requires running as a non-root user with UID 1000
-RUN useradd -m -u 1000 user
+# We use the existing 'node' user (UID 1000) for Hugging Face Spaces compatibility
+
 
 # Set up working directory for the microservice
 WORKDIR /app
-RUN chown -R user:user /app
+RUN chown -R node:node /app
 
 # Copy package files
-COPY --chown=user:user package*.json ./
+COPY --chown=node:node package*.json ./
 
 # Install npm dependencies
 RUN npm install
 
 # Copy the rest of the microservice
-COPY --chown=user:user . .
+COPY --chown=node:node . .
 
 # Switch to the non-root user
-USER user
+USER node
 
 # Expose port (Hugging Face Spaces requires 7860)
 EXPOSE 7860
