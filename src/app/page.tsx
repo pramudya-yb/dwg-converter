@@ -331,7 +331,7 @@ export default function Home() {
                         </div>
                         <div>
                           <div className="download-card-title" style={{ color: 'var(--error)' }}>Konversi Gagal</div>
-                          <div className="download-card-size">{errorMsg}</div>
+                          <div className="download-card-size" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', marginTop: '8px' }}>{errorMsg}</div>
                         </div>
                       </div>
                     </div>

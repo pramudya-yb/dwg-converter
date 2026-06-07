@@ -36,11 +36,17 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         let errorMessage = 'External conversion failed';
+        let errorDetails = null;
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
+          errorDetails = errorData.details || null;
+          
+          if (errorDetails && Array.isArray(errorDetails) && errorDetails.length > 0 && errorDetails[0].error) {
+            errorMessage += '\n\nDetail:\n' + errorDetails[0].error;
+          }
         } catch (e) {}
-        return NextResponse.json({ error: errorMessage }, { status: response.status });
+        return NextResponse.json({ error: errorMessage, details: errorDetails }, { status: response.status });
       }
 
       const contentType = response.headers.get('Content-Type');
