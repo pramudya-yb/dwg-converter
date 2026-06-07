@@ -8,7 +8,7 @@ import FormatToggle from '@/components/FormatToggle';
 import FilePreview from '@/components/FilePreview';
 import SetupGuide from '@/components/SetupGuide';
 
-type OutputFormat = 'DWG' | 'DXF';
+type OutputFormat = 'DWG' | 'DXF' | 'SHP';
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
