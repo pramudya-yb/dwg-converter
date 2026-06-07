@@ -197,9 +197,7 @@ export default function Home() {
   return (
     <div className="page-wrapper">
       <Header />
-
-      <main className="container" style={{ paddingTop: '40px' }}>
-
+      <main className="container" style={{ paddingTop: '24px', paddingBottom: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* ODA Setup Guide */}
         {odaInstalled === false && <SetupGuide />}
 
