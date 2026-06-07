@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CAD Version Converter — DWG/DXF File Converter",
+  title: "CAD Converter",
   description:
     "Convert AutoCAD DWG and DXF files between versions. Supports all major AutoCAD versions from R12 to 2025. Fast, reliable, and free.",
 };
