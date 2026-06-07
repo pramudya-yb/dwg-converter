@@ -52,7 +52,10 @@ async function convertFile(options) {
   const fileName = path.basename(options.sourceFilePath);
   const ext = path.extname(fileName).toLowerCase();
   const baseName = path.basename(fileName, ext);
-  const outputExt = options.outputFormat === 'DWG' ? '.dwg' : '.dxf';
+  const isSHP = options.outputFormat === 'SHP';
+  const odaFormatString = isSHP ? 'DXF' : options.outputFormat; // SHP requires intermediate DXF
+  const outputExt = isSHP ? '.zip' : (options.outputFormat === 'DWG' ? '.dwg' : '.dxf');
+  const searchExt = isSHP ? '.dxf' : outputExt;
 
   const tempSourceDir = path.join(options.outputDir, '_source_' + Date.now());
   await fs.promises.mkdir(tempSourceDir, { recursive: true });
@@ -61,7 +64,7 @@ async function convertFile(options) {
   const tempOutputDir = path.join(options.outputDir, '_output_' + Date.now());
   await fs.promises.mkdir(tempOutputDir, { recursive: true });
 
-  const formatString = options.outputFormat; // Must be "DWG" or "DXF", not numeric codes
+  const formatString = odaFormatString; // "DWG" or "DXF"
   const auditFlag = options.audit ? '1' : '0';
 
   // Format: ODAFileConverter InputDir OutputDir Version OutputFormat Recurse Audit [InputFilter]
@@ -76,7 +79,7 @@ async function convertFile(options) {
     const { stdout, stderr } = await execAsync(command, { timeout: 120000 });
 
     const files = await fs.promises.readdir(tempOutputDir);
-    let outputFile = files.find(f => f.toLowerCase().endsWith(outputExt));
+    let outputFile = files.find(f => f.toLowerCase().endsWith(searchExt));
 
     if (!outputFile) {
       const anyFile = files.find(f => !f.startsWith('.'));
@@ -87,7 +90,28 @@ async function convertFile(options) {
     }
 
     const finalPath = path.join(options.outputDir, baseName + outputExt);
-    await fs.promises.rename(path.join(tempOutputDir, outputFile), finalPath);
+
+    if (isSHP) {
+      // Step 2: Convert intermediate DXF to SHP and Zip it
+      const shapeOutputDir = path.join(options.outputDir, '_shape_' + Date.now());
+      await fs.promises.mkdir(shapeOutputDir, { recursive: true });
+      const dxfFile = path.join(tempOutputDir, outputFile);
+
+      try {
+        const ogrCommand = `ogr2ogr -f "ESRI Shapefile" "${shapeOutputDir}" "${dxfFile}" -skipfailures`;
+        await execAsync(ogrCommand, { timeout: 120000 });
+
+        const zipCommand = `cd "${shapeOutputDir}" && zip -r "${finalPath}" .`;
+        await execAsync(zipCommand, { timeout: 60000 });
+      } catch (err) {
+        throw new Error('Shapefile conversion failed: ' + err.message);
+      } finally {
+        await fs.promises.rm(shapeOutputDir, { recursive: true, force: true }).catch(() => {});
+      }
+    } else {
+      // Just move the DWG/DXF
+      await fs.promises.rename(path.join(tempOutputDir, outputFile), finalPath);
+    }
 
     await fs.promises.rm(tempSourceDir, { recursive: true, force: true });
     await fs.promises.rm(tempOutputDir, { recursive: true, force: true });

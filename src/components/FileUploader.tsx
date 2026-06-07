@@ -18,6 +18,7 @@ interface FileUploaderProps {
   files: UploadedFile[];
   onFilesAdded: (files: File[]) => void;
   onFileRemove: (id: string) => void;
+  onClearAll?: () => void;
 }
 
 function generateId(): string {
@@ -32,7 +33,7 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-export default function FileUploader({ files, onFilesAdded, onFileRemove }: FileUploaderProps) {
+export default function FileUploader({ files, onFilesAdded, onFileRemove, onClearAll }: FileUploaderProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
@@ -116,7 +117,7 @@ export default function FileUploader({ files, onFilesAdded, onFileRemove }: File
   return (
     <div>
       <div
-        className={`upload-zone ${isDragOver ? 'drag-over' : ''} ${files.length > 0 ? 'has-files' : ''}`}
+        className={`upload-zone ${isDragOver ? 'drag-over' : ''} ${files.length > 0 ? 'compact' : ''}`}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
@@ -125,22 +126,30 @@ export default function FileUploader({ files, onFilesAdded, onFileRemove }: File
         role="button"
         tabIndex={0}
         aria-label="Upload area - click or drag files here"
+        style={files.length > 0 ? { minHeight: '80px', padding: '16px', flexDirection: 'row', gap: '16px', borderStyle: 'dashed' } : {}}
       >
-        <div className="upload-zone-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="upload-zone-icon" style={files.length > 0 ? { width: '40px', height: '40px', margin: '0' } : {}}>
+          <svg width={files.length > 0 ? "20" : "40"} height={files.length > 0 ? "20" : "40"} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
         </div>
-        <p className="upload-zone-text">
-          {isDragOver ? 'Lepaskan file di sini...' : 'Klik atau seret file DWG/DXF ke sini'}
-        </p>
-        <p className="upload-zone-hint">Mendukung batch upload — pilih banyak file sekaligus</p>
-        <div className="upload-zone-formats">
-          <span className="format-badge">.DWG</span>
-          <span className="format-badge">.DXF</span>
+        <div style={files.length > 0 ? { textAlign: 'left', flex: 1 } : {}}>
+          <p className="upload-zone-text" style={files.length > 0 ? { fontSize: '1rem', margin: 0 } : {}}>
+            {isDragOver ? 'Lepaskan file di sini...' : (files.length > 0 ? 'Tambah file lagi (+)' : 'Klik atau seret file DWG/DXF ke sini')}
+          </p>
+          {files.length === 0 && (
+            <>
+              <p className="upload-zone-hint">Mendukung batch upload — pilih banyak file sekaligus</p>
+              <div className="upload-zone-formats">
+                <span className="format-badge">.DWG</span>
+                <span className="format-badge">.DXF</span>
+              </div>
+            </>
+          )}
         </div>
+      </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -151,6 +160,22 @@ export default function FileUploader({ files, onFilesAdded, onFileRemove }: File
           aria-hidden="true"
         />
       </div>
+
+      {files.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px 0' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Daftar Antrean ({files.length})</span>
+          {onClearAll && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onClearAll(); }}
+              style={{ background: 'none', border: 'none', color: 'var(--error)', fontSize: '0.85rem', cursor: 'pointer', padding: '4px 8px', opacity: 0.8 }}
+              onMouseOver={e => e.currentTarget.style.opacity = '1'}
+              onMouseOut={e => e.currentTarget.style.opacity = '0.8'}
+            >
+              Hapus Semua
+            </button>
+          )}
+        </div>
+      )}
 
       {files.length > 0 && (
         <div className="file-list">

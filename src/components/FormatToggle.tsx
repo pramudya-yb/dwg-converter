@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-type OutputFormat = 'DWG' | 'DXF';
+type OutputFormat = 'DWG' | 'DXF' | 'SHP';
 
 interface FormatToggleProps {
   value: OutputFormat;
@@ -55,6 +55,22 @@ export default function FormatToggle({ value, onChange }: FormatToggleProps) {
             .DXF
           </span>
           <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.7, marginTop: '2px' }}>Drawing Exchange</span>
+        </button>
+        <button
+          className={`format-toggle-btn ${value === 'SHP' ? 'active' : ''}`}
+          onClick={() => onChange('SHP')}
+          role="radio"
+          aria-checked={value === 'SHP'}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </svg>
+            .SHP
+          </span>
+          <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.7, marginTop: '2px' }}>ESRI Shapefile</span>
         </button>
       </div>
     </div>

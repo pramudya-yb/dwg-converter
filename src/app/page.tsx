@@ -130,7 +130,8 @@ export default function Home() {
 
       // Determine filename
       const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = `converted_${selectedVersion}.${outputFormat.toLowerCase()}`;
+      const defaultExt = outputFormat === 'SHP' ? 'zip' : outputFormat.toLowerCase();
+      let filename = `converted_${selectedVersion}.${defaultExt}`;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="(.+)"/);
         if (match) filename = match[1];
@@ -166,6 +167,16 @@ export default function Home() {
     } finally {
       setIsConverting(false);
     }
+  };
+
+  const handleClearAll = () => {
+    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+    setFiles([]);
+    setConversionDone(false);
+    setDownloadUrl(null);
+    setDownloadName('');
+    setErrorMsg(null);
+    setPreviewFile(null);
   };
 
   const handleDownload = () => {
@@ -240,6 +251,7 @@ export default function Home() {
                     files={files}
                     onFilesAdded={handleFilesAdded}
                     onFileRemove={handleFileRemove}
+                    onClearAll={handleClearAll}
                   />
                 </section>
 
@@ -272,41 +284,43 @@ export default function Home() {
                 </div>
 
                 {/* Convert Button */}
-                <div className="convert-section" style={{ marginTop: 0 }}>
-                  <button
-                    className="convert-btn"
-                    disabled={!canConvert}
-                    onClick={handleConvert}
-                  >
-                    {isConverting ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-                        <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                        Converting...
-                      </span>
-                    ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="16 16 12 12 8 16" />
-                          <line x1="12" y1="12" x2="12" y2="21" />
-                          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-                        </svg>
-                        Convert
-                      </span>
+                {!conversionDone && (
+                  <div className="convert-section" style={{ marginTop: 0 }}>
+                    <button
+                      className="convert-btn"
+                      disabled={!canConvert}
+                      onClick={handleConvert}
+                    >
+                      {isConverting ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                          <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
+                          Converting...
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="16 16 12 12 8 16" />
+                            <line x1="12" y1="12" x2="12" y2="21" />
+                            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                          </svg>
+                          Convert
+                        </span>
+                      )}
+                    </button>
+
+                    {!odaInstalled && files.length > 0 && (
+                      <p style={{ marginTop: '12px', color: 'var(--warning)', fontSize: '0.85rem' }}>
+                        ⚠️ ODA File Converter belum terinstall. Install terlebih dahulu untuk mengkonversi file.
+                      </p>
                     )}
-                  </button>
 
-                  {!odaInstalled && files.length > 0 && (
-                    <p style={{ marginTop: '12px', color: 'var(--warning)', fontSize: '0.85rem' }}>
-                      ⚠️ ODA File Converter belum terinstall. Install terlebih dahulu untuk mengkonversi file.
-                    </p>
-                  )}
-
-                  {!selectedVersion && files.length > 0 && (
-                    <p style={{ marginTop: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      Pilih versi target di atas untuk melanjutkan
-                    </p>
-                  )}
-                </div>
+                    {!selectedVersion && files.length > 0 && (
+                      <p style={{ marginTop: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        Pilih versi target di atas untuk melanjutkan
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Error Message */}
                 {errorMsg && (

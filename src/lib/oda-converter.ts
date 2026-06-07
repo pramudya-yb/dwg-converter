@@ -22,7 +22,7 @@ export const AUTOCAD_VERSIONS = [
 ] as const;
 
 export type AutoCADVersion = typeof AUTOCAD_VERSIONS[number];
-export type OutputFormat = 'DWG' | 'DXF';
+export type OutputFormat = 'DWG' | 'DXF' | 'SHP';
 
 // Common install paths for ODA File Converter on Windows
 const ODA_SEARCH_PATHS = [

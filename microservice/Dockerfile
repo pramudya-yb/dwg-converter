@@ -47,6 +47,8 @@ RUN apt-get update && apt-get install -y \
     libxcomposite1 \
     libxdamage1 \
     libxrandr2 \
+    gdal-bin \
+    zip \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix potential missing symlink for libxcb-util.so.0 required by older QT apps
