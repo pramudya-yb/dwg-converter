@@ -422,7 +422,7 @@ export default function Home() {
         color: 'var(--text-muted)',
         fontSize: '0.8rem',
       }}>
-        <p>CAD Version Converter — Powered by ODA File Converter</p>
+        <p>CAD Converter {new Date().getFullYear()} — Open source by Pram</p>
         <p style={{ marginTop: '4px' }}>
           Mendukung semua versi AutoCAD dari R9 (1987) hingga 2018+
         </p>
