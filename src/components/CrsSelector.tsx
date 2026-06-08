@@ -7,12 +7,6 @@ interface CrsSelectorProps {
   onChange: (value: string) => void;
 }
 
-const TM3_ZONES = [
-  { label: 'Zona 46.1', epsg: 'EPSG:23830' },
-  { label: 'Zona 46.2', epsg: 'EPSG:23831' }, // Wait, checking EPSG list: 46.2 is 23830? Let me use exact names.
-];
-
-// Re-defining exactly based on DGN95 EPSG lookup:
 const CRS_OPTIONS = [
   { group: 'Global', options: [
     { label: 'Tidak Ada (Bawaan File)', value: '' },
@@ -41,60 +35,27 @@ const CRS_OPTIONS = [
 
 export default function CrsSelector({ value, onChange }: CrsSelectorProps) {
   return (
-    <div className="section" style={{ marginTop: '24px' }}>
-      <div className="section-header" style={{ marginBottom: '16px' }}>
-        <h2 className="section-title">
-          <span className="section-title-icon" style={{ background: 'rgba(0, 245, 212, 0.15)' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-tertiary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-          </span>
-          Sistem Proyeksi (CRS)
-        </h2>
+    <div className="custom-select-wrapper">
+      <select
+        className="custom-select"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {CRS_OPTIONS.map((group, idx) => (
+          <optgroup key={idx} label={group.group}>
+            {group.options.map(opt => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      <div className="custom-select-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </div>
-      
-      <div className="custom-select-wrapper" style={{ position: 'relative' }}>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '12px 40px 12px 16px',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-primary)',
-            fontSize: '0.95rem',
-            outline: 'none',
-            cursor: 'pointer',
-            appearance: 'none',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
-            transition: 'all var(--transition-fast)'
-          }}
-          onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
-          onBlur={(e) => e.target.style.borderColor = 'var(--border-light)'}
-        >
-          {CRS_OPTIONS.map((group, idx) => (
-            <optgroup key={idx} label={group.group}>
-              {group.options.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
-      </div>
-      <p style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        Membuat file .prj agar Shapefile berada di koordinat yang tepat.
-      </p>
     </div>
   );
 }

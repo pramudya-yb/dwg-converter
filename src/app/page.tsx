@@ -292,10 +292,16 @@ export default function Home() {
 
                 {/* CRS Selector (Only for SHP) */}
                 {outputFormat === 'SHP' && (
-                  <CrsSelector
-                    value={targetCRS}
-                    onChange={setTargetCRS}
-                  />
+                  <div>
+                    <div className="settings-group-title">Sistem Proyeksi (CRS)</div>
+                    <CrsSelector
+                      value={targetCRS}
+                      onChange={setTargetCRS}
+                    />
+                    <p style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Membuat file .prj agar Shapefile berada di koordinat yang tepat.
+                    </p>
+                  </div>
                 )}
 
                 {/* Convert Button */}
