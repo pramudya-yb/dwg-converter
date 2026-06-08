@@ -55,22 +55,26 @@ export default function CrsSelector({ value, onChange }: CrsSelectorProps) {
         </h2>
       </div>
       
-      <div style={{ position: 'relative' }}>
+      <div className="custom-select-wrapper" style={{ position: 'relative' }}>
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
           style={{
             width: '100%',
-            padding: '12px 16px',
+            padding: '12px 40px 12px 16px',
             background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-glass)',
+            border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-md)',
             color: 'var(--text-primary)',
             fontSize: '0.95rem',
             outline: 'none',
             cursor: 'pointer',
-            appearance: 'none'
+            appearance: 'none',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+            transition: 'all var(--transition-fast)'
           }}
+          onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+          onBlur={(e) => e.target.style.borderColor = 'var(--border-light)'}
         >
           {CRS_OPTIONS.map((group, idx) => (
             <optgroup key={idx} label={group.group}>
