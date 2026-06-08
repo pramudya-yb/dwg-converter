@@ -287,6 +287,9 @@ export default function Home() {
                       selectedVersion={selectedVersion}
                       onSelectVersion={setSelectedVersion}
                     />
+                    <p style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Tentukan kompatibilitas versi AutoCAD untuk file hasil konversi.
+                    </p>
                   </div>
                 )}
 
