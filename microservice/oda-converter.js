@@ -98,8 +98,24 @@ async function convertFile(options) {
       const dxfFile = path.join(tempOutputDir, outputFile);
 
       try {
-        const ogrCommand = `ogr2ogr -f "ESRI Shapefile" "${shapeOutputDir}" "${dxfFile}" -skipfailures`;
-        await execAsync(ogrCommand, { timeout: 120000 });
+        const geomTypes = [
+          { suffix: 'points', nlt: 'POINT' },
+          { suffix: 'lines', nlt: 'LINESTRING' },
+          { suffix: 'polygons', nlt: 'POLYGON' },
+          { suffix: 'multipatch', nlt: 'MULTIPATCH' }
+        ];
+
+        const srsFlag = options.targetCRS ? `-a_srs "${options.targetCRS}" ` : '';
+
+        for (const t of geomTypes) {
+          const shpFile = path.join(shapeOutputDir, `${baseName}_${t.suffix}.shp`);
+          const ogrCommand = `ogr2ogr -f "ESRI Shapefile" "${shpFile}" "${dxfFile}" -nlt ${t.nlt} ${srsFlag}-skipfailures`;
+          try {
+            await execAsync(ogrCommand, { timeout: 120000 });
+          } catch (e) {
+            // Ignore errors for individual types (e.g. if the DXF has no polygons)
+          }
+        }
 
         const zipCommand = `cd "${shapeOutputDir}" && zip -r "${finalPath}" .`;
         await execAsync(zipCommand, { timeout: 60000 });

@@ -70,8 +70,9 @@ export async function findODAConverter(): Promise<string | null> {
 export interface ConversionOptions {
   sourceFilePath: string;
   outputDir: string;
-  targetVersion: string;  // e.g., 'ACAD2018'
-  outputFormat: OutputFormat;  // 'DWG' or 'DXF'
+  targetVersion: AutoCADVersion['code'] | string;
+  outputFormat: OutputFormat;
+  targetCRS?: string;
   audit?: boolean;
 }
 

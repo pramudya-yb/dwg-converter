@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     const files = formData.getAll('files') as File[];
     const targetVersion = formData.get('targetVersion') as string;
     const outputFormat = (formData.get('outputFormat') as string || 'DWG') as OutputFormat;
+    const targetCRS = formData.get('targetCRS') as string || '';
 
     // Validate
     if (!files || files.length === 0) {
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
         outputDir: outputDir,
         targetVersion: targetVersion,
         outputFormat: outputFormat,
+        targetCRS: targetCRS,
         audit: true,
       });
 

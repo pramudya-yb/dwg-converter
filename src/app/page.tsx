@@ -7,6 +7,7 @@ import VersionGrid from '@/components/VersionGrid';
 import FormatToggle from '@/components/FormatToggle';
 import FilePreview from '@/components/FilePreview';
 import SetupGuide from '@/components/SetupGuide';
+import CrsSelector from '@/components/CrsSelector';
 
 type OutputFormat = 'DWG' | 'DXF' | 'SHP';
 
@@ -25,6 +26,7 @@ export default function Home() {
   const [downloadName, setDownloadName] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [targetCRS, setTargetCRS] = useState<string>('');
 
   // Check ODA installation on mount
   useEffect(() => {
@@ -103,6 +105,9 @@ export default function Home() {
       }
       formData.append('targetVersion', selectedVersion);
       formData.append('outputFormat', outputFormat);
+      if (outputFormat === 'SHP' && targetCRS) {
+        formData.append('targetCRS', targetCRS);
+      }
 
       const response = await fetch('/api/convert', {
         method: 'POST',
@@ -282,6 +287,14 @@ export default function Home() {
                     onChange={setOutputFormat}
                   />
                 </div>
+
+                {/* CRS Selector (Only for SHP) */}
+                {outputFormat === 'SHP' && (
+                  <CrsSelector
+                    value={targetCRS}
+                    onChange={setTargetCRS}
+                  />
+                )}
 
                 {/* Convert Button */}
                 {!conversionDone && (

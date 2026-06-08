@@ -37,6 +37,7 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
   const files = req.files;
   const targetVersion = req.body.targetVersion;
   const outputFormat = req.body.outputFormat || 'DWG';
+  const targetCRS = req.body.targetCRS; // e.g. "EPSG:4326"
 
   if (!files || files.length === 0) {
     return res.status(400).json({ error: 'No files uploaded' });
@@ -65,6 +66,7 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
         outputDir: outputDir,
         targetVersion: targetVersion,
         outputFormat: outputFormat,
+        targetCRS: targetCRS,
         audit: true,
       });
 
