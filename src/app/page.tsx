@@ -78,7 +78,7 @@ export default function Home() {
   }, [previewFile]);
 
   const handleConvert = async () => {
-    if (files.length === 0 || !selectedVersion) return;
+    if (files.length === 0 || (!selectedVersion && outputFormat !== 'SHP')) return;
 
     setIsConverting(true);
     setConversionDone(false);
@@ -103,7 +103,7 @@ export default function Home() {
       for (const f of files) {
         formData.append('files', f.file);
       }
-      formData.append('targetVersion', selectedVersion);
+      formData.append('targetVersion', selectedVersion || 'ACAD2010');
       formData.append('outputFormat', outputFormat);
       if (outputFormat === 'SHP' && targetCRS) {
         formData.append('targetCRS', targetCRS);
@@ -207,7 +207,7 @@ export default function Home() {
     setPreviewFile(null);
   };
 
-  const canConvert = files.length > 0 && selectedVersion && !isConverting && odaInstalled;
+  const canConvert = files.length > 0 && (selectedVersion || outputFormat === 'SHP') && !isConverting && odaInstalled;
   const pendingFiles = files.filter(f => f.status === 'pending' || f.status === 'error');
 
   return (
@@ -270,15 +270,6 @@ export default function Home() {
 
               {/* Right Column: Settings & Conversion */}
               <div className="converter-right">
-                {/* Version Selection */}
-                <div>
-                  <div className="settings-group-title">Target Version</div>
-                  <VersionGrid
-                    selectedVersion={selectedVersion}
-                    onSelectVersion={setSelectedVersion}
-                  />
-                </div>
-
                 {/* Format Toggle */}
                 <div>
                   <div className="settings-group-title">Output Format</div>
@@ -287,6 +278,17 @@ export default function Home() {
                     onChange={setOutputFormat}
                   />
                 </div>
+
+                {/* Version Selection (Hidden for SHP because it's irrelevant) */}
+                {outputFormat !== 'SHP' && (
+                  <div>
+                    <div className="settings-group-title">Target Version</div>
+                    <VersionGrid
+                      selectedVersion={selectedVersion}
+                      onSelectVersion={setSelectedVersion}
+                    />
+                  </div>
+                )}
 
                 {/* CRS Selector (Only for SHP) */}
                 {outputFormat === 'SHP' && (
@@ -327,7 +329,7 @@ export default function Home() {
                       </p>
                     )}
 
-                    {!selectedVersion && files.length > 0 && (
+                    {!selectedVersion && files.length > 0 && outputFormat !== 'SHP' && (
                       <p style={{ marginTop: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                         Pilih versi target di atas untuk melanjutkan
                       </p>
