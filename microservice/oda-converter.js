@@ -64,11 +64,19 @@ async function convertFile(options) {
   const tempOutputDir = path.join(options.outputDir, '_output_' + Date.now());
   await fs.promises.mkdir(tempOutputDir, { recursive: true });
 
-  const formatString = odaFormatString; // "DWG" or "DXF"
+  const inputIsDXF = ext === '.dxf';
   const auditFlag = options.audit ? '1' : '0';
 
-  // Format: ODAFileConverter InputDir OutputDir Version OutputFormat Recurse Audit [InputFilter]
-  let command = `"${odaPath}" "${tempSourceDir}" "${tempOutputDir}" "${options.targetVersion}" "${formatString}" "0" "${auditFlag}"`;
+  // ODAFileConverter InputDir OutputDir Version OutputType Recurse Audit [InputFilter]
+  // OutputType: 0 = DWG→DWG, 1 = DWG→DXF binary, 2 = DWG→DXF ASCII, 3 = DXF→DWG, 4 = DXF→DXF
+  let typeCode;
+  if (inputIsDXF) {
+    typeCode = odaFormatString === 'DWG' ? '3' : '4';
+  } else {
+    typeCode = odaFormatString === 'DWG' ? '0' : '2';
+  }
+
+  let command = `"${odaPath}" "${tempSourceDir}" "${tempOutputDir}" "${options.targetVersion}" "${typeCode}" "0" "${auditFlag}"`;
 
   if (process.platform === 'linux') {
     // Rely on the background Xvfb server started in Dockerfile

@@ -3,6 +3,7 @@ import { convertFile, AUTOCAD_VERSIONS, type OutputFormat } from '@/lib/oda-conv
 import { createTempDir, cleanupTempDir, isValidCADFile, sanitizeFileName } from '@/lib/file-utils';
 import path from 'path';
 import fs from 'fs/promises';
+import { createWriteStream } from 'fs';
 import * as archiverNamespace from 'archiver';
 const archiver = (archiverNamespace as any).default || archiverNamespace;
 
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
     }
 
-    if (!targetVersion || !AUTOCAD_VERSIONS.find(v => v.code === targetVersion)) {
+    if (outputFormat !== 'SHP' && (!targetVersion || !AUTOCAD_VERSIONS.find(v => v.code === targetVersion))) {
       return NextResponse.json({ error: 'Invalid target version' }, { status: 400 });
     }
 
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
     const zipPath = path.join(tempDir, 'converted_files.zip');
 
     await new Promise<void>((resolve, reject) => {
-      const output = require('fs').createWriteStream(zipPath);
+      const output = createWriteStream(zipPath);
       const archive = archiver('zip', { zlib: { level: 6 } });
 
       output.on('close', resolve);

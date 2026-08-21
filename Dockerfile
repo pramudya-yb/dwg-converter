@@ -26,7 +26,7 @@ RUN cd /usr/lib/x86_64-linux-gnu && \
 # Alternatively, use the AppImage version.
 RUN wget -O /tmp/odafileconverter.deb "https://www.opendesign.com/guestfiles/get?filename=ODAFileConverter_QT6_lnxX64_8.3dll_25.12.deb" && \
     apt-get update && \
-    apt-get install -y /tmp/odafileconverter.deb || apt-get install -y -f && \
+    (apt-get install -y /tmp/odafileconverter.deb || apt-get install -y -f) && \
     rm /tmp/odafileconverter.deb && \
     rm -rf /var/lib/apt/lists/*
 
@@ -59,4 +59,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Run the Next.js server
-CMD ["npm", "start"]
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1024x768x24 &>/dev/null & export DISPLAY=:99 && npm start"]

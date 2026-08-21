@@ -43,7 +43,7 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
     return res.status(400).json({ error: 'No files uploaded' });
   }
 
-  if (!targetVersion || !AUTOCAD_VERSIONS.find(v => v.code === targetVersion)) {
+  if (outputFormat !== 'SHP' && (!targetVersion || !AUTOCAD_VERSIONS.find(v => v.code === targetVersion))) {
     return res.status(400).json({ error: 'Invalid target version' });
   }
 

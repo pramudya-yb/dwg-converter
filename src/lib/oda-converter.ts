@@ -46,21 +46,21 @@ export async function findODAConverter(): Promise<string | null> {
   // Try to find via where command on Windows
   try {
     const { stdout } = await execAsync('where ODAFileConverter');
-    const found = stdout.trim().split('\n')[0];
+    const found = stdout.trim().split(/\r?\n/)[0]?.trim();
     if (found && existsSync(found)) return found;
   } catch {}
 
   // Try searching in Program Files with dir command
   try {
     const { stdout } = await execAsync('dir /s /b "C:\\Program Files\\ODA*\\ODAFileConverter.exe" 2>nul');
-    const found = stdout.trim().split('\n')[0];
-    if (found && existsSync(found.trim())) return found.trim();
+    const found = stdout.trim().split(/\r?\n/)[0]?.trim();
+    if (found && existsSync(found)) return found;
   } catch {}
 
   // Try Linux typical paths
   try {
     const { stdout } = await execAsync('which ODAFileConverter');
-    const found = stdout.trim().split('\n')[0];
+    const found = stdout.trim().split(/\r?\n/)[0]?.trim();
     if (found && existsSync(found)) return found;
   } catch {}
 
@@ -94,7 +94,13 @@ export async function convertFile(options: ConversionOptions): Promise<Conversio
   const fileName = path.basename(options.sourceFilePath);
   const ext = path.extname(fileName).toLowerCase();
   const baseName = path.basename(fileName, ext);
+
+  if (options.outputFormat === 'SHP') {
+    return { success: false, error: 'SHP conversion is only supported via the external microservice. Set EXTERNAL_CONVERTER_URL to use SHP output.' };
+  }
+
   const outputExt = options.outputFormat === 'DWG' ? '.dwg' : '.dxf';
+  const inputIsDXF = ext === '.dxf';
 
   // Create a temp source directory with just this file (ODA works with directories)
   const tempSourceDir = path.join(options.outputDir, '_source_' + Date.now());
@@ -106,8 +112,13 @@ export async function convertFile(options: ConversionOptions): Promise<Conversio
 
   // Build the ODA command
   // ODAFileConverter <source> <target> <version> <type> <recurse> <audit>
-  // type: 0 = DWG, 1 = DXF binary, 2 = DXF ASCII
-  const typeCode = options.outputFormat === 'DWG' ? '0' : '2'; // ASCII DXF
+  // type: 0 = DWG→DWG, 1 = DWG→DXF binary, 2 = DWG→DXF ASCII, 3 = DXF→DWG, 4 = DXF→DXF
+  let typeCode: string;
+  if (inputIsDXF) {
+    typeCode = options.outputFormat === 'DWG' ? '3' : '4';
+  } else {
+    typeCode = options.outputFormat === 'DWG' ? '0' : '2';
+  }
   const auditFlag = options.audit ? '1' : '0';
 
   let command = `"${odaPath}" "${tempSourceDir}" "${tempOutputDir}" "${options.targetVersion}" "${typeCode}" "0" "${auditFlag}"`;

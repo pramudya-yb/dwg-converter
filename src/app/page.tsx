@@ -208,7 +208,6 @@ export default function Home() {
   };
 
   const canConvert = files.length > 0 && (selectedVersion || outputFormat === 'SHP') && !isConverting && odaInstalled;
-  const pendingFiles = files.filter(f => f.status === 'pending' || f.status === 'error');
 
   return (
     <div className="page-wrapper">
