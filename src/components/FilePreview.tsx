@@ -99,12 +99,12 @@ export default function FilePreview({ file }: FilePreviewProps) {
             const gv = lines[i + 1]?.trim();
             if (gc === '0') break;
             switch (gc) {
-              case '8': entity.layer = gv; layerSet.add(gv!); break;
-              case '62': entity.color = parseInt(gv!); break;
-              case '10': x1 = parseFloat(gv!); break;
-              case '20': y1 = parseFloat(gv!); break;
-              case '11': x2 = parseFloat(gv!); break;
-              case '21': y2 = parseFloat(gv!); break;
+              case '8': if (gv) { entity.layer = gv; layerSet.add(gv); } break;
+              case '62': entity.color = parseInt(gv || '0'); break;
+              case '10': x1 = parseFloat(gv || '0'); break;
+              case '20': y1 = parseFloat(gv || '0'); break;
+              case '11': x2 = parseFloat(gv || '0'); break;
+              case '21': y2 = parseFloat(gv || '0'); break;
             }
             i += 2;
           }
@@ -124,11 +124,11 @@ export default function FilePreview({ file }: FilePreviewProps) {
             const gv = lines[i + 1]?.trim();
             if (gc === '0') break;
             switch (gc) {
-              case '8': entity.layer = gv; layerSet.add(gv!); break;
-              case '62': entity.color = parseInt(gv!); break;
-              case '10': cx = parseFloat(gv!); break;
-              case '20': cy = parseFloat(gv!); break;
-              case '40': r = parseFloat(gv!); break;
+              case '8': if (gv) { entity.layer = gv; layerSet.add(gv); } break;
+              case '62': entity.color = parseInt(gv || '0'); break;
+              case '10': cx = parseFloat(gv || '0'); break;
+              case '20': cy = parseFloat(gv || '0'); break;
+              case '40': r = parseFloat(gv || '0'); break;
             }
             i += 2;
           }
@@ -149,13 +149,13 @@ export default function FilePreview({ file }: FilePreviewProps) {
             const gv = lines[i + 1]?.trim();
             if (gc === '0') break;
             switch (gc) {
-              case '8': entity.layer = gv; layerSet.add(gv!); break;
-              case '62': entity.color = parseInt(gv!); break;
-              case '10': cx = parseFloat(gv!); break;
-              case '20': cy = parseFloat(gv!); break;
-              case '40': r = parseFloat(gv!); break;
-              case '50': sa = parseFloat(gv!); break;
-              case '51': ea = parseFloat(gv!); break;
+              case '8': if (gv) { entity.layer = gv; layerSet.add(gv); } break;
+              case '62': entity.color = parseInt(gv || '0'); break;
+              case '10': cx = parseFloat(gv || '0'); break;
+              case '20': cy = parseFloat(gv || '0'); break;
+              case '40': r = parseFloat(gv || '0'); break;
+              case '50': sa = parseFloat(gv || '0'); break;
+              case '51': ea = parseFloat(gv || '0'); break;
             }
             i += 2;
           }
@@ -186,11 +186,11 @@ export default function FilePreview({ file }: FilePreviewProps) {
               break;
             }
             switch (gc) {
-              case '8': entity.layer = gv; layerSet.add(gv!); break;
-              case '62': entity.color = parseInt(gv!); break;
-              case '10': currentX = parseFloat(gv!); break;
+              case '8': if (gv) { entity.layer = gv; layerSet.add(gv); } break;
+              case '62': entity.color = parseInt(gv || '0'); break;
+              case '10': currentX = parseFloat(gv || '0'); break;
               case '20': {
-                const y = parseFloat(gv!);
+                const y = parseFloat(gv || '0');
                 if (currentX !== null) {
                   entity.points!.push({ x: currentX, y });
                   updateBounds(currentX, y);
@@ -214,12 +214,12 @@ export default function FilePreview({ file }: FilePreviewProps) {
             const gv = lines[i + 1]?.trim();
             if (gc === '0') break;
             switch (gc) {
-              case '8': entity.layer = gv; layerSet.add(gv!); break;
-              case '62': entity.color = parseInt(gv!); break;
-              case '10': x = parseFloat(gv!); break;
-              case '20': y = parseFloat(gv!); break;
+              case '8': if (gv) { entity.layer = gv; layerSet.add(gv); } break;
+              case '62': entity.color = parseInt(gv || '0'); break;
+              case '10': x = parseFloat(gv || '0'); break;
+              case '20': y = parseFloat(gv || '0'); break;
               case '1': entity.text = gv; break;
-              case '40': entity.height = parseFloat(gv!); break;
+              case '40': entity.height = parseFloat(gv || '0'); break;
             }
             i += 2;
           }

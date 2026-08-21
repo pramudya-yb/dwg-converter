@@ -80,6 +80,10 @@ export default function Home() {
   const handleConvert = async () => {
     if (files.length === 0 || (!selectedVersion && outputFormat !== 'SHP')) return;
 
+    if (downloadUrl) {
+      URL.revokeObjectURL(downloadUrl);
+    }
+
     setIsConverting(true);
     setConversionDone(false);
     setDownloadUrl(null);

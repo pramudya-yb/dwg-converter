@@ -28,6 +28,9 @@ export async function POST(request: NextRequest) {
     }
 
     const externalUrl = process.env.EXTERNAL_CONVERTER_URL;
+    if (outputFormat === 'SHP' && !externalUrl) {
+      return NextResponse.json({ error: 'Shapefile (.SHP) conversion requires the external microservice to be configured. Please set EXTERNAL_CONVERTER_URL.' }, { status: 400 });
+    }
     if (externalUrl) {
       // Forward the entire FormData to the external microservice
       const response = await fetch(`${externalUrl}/api/convert`, {

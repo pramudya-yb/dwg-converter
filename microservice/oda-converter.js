@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
-const crypto = require('crypto');
 const os = require('os');
 
 const execAsync = promisify(exec);
@@ -28,7 +27,7 @@ async function findODAConverter() {
   if (process.platform === 'linux') {
     try {
       const { stdout } = await execAsync('which ODAFileConverter');
-      const found = stdout.trim().split('\n')[0];
+      const found = stdout.trim().split(/\r?\n/)[0]?.trim();
       if (found && fs.existsSync(found)) return found;
     } catch {}
     

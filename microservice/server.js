@@ -35,8 +35,8 @@ app.get('/api/check-oda', async (req, res) => {
 
 app.post('/api/convert', upload.array('files'), async (req, res) => {
   const files = req.files;
-  const targetVersion = req.body.targetVersion;
   const outputFormat = req.body.outputFormat || 'DWG';
+  const targetVersion = outputFormat === 'SHP' ? (req.body.targetVersion || 'ACAD2010') : req.body.targetVersion;
   const targetCRS = req.body.targetCRS; // e.g. "EPSG:4326"
 
   if (!files || files.length === 0) {
@@ -125,7 +125,9 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
     });
 
     archive.on('error', (err) => {
-      res.status(500).json({ error: err.message });
+      if (!res.headersSent) {
+        res.status(500).json({ error: err.message });
+      }
     });
 
     archive.pipe(output);
