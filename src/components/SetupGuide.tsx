@@ -57,7 +57,7 @@ export default function SetupGuide() {
           Jika ODA terinstall di lokasi non-standar, set environment variable:
         </p>
         <code className="setup-code-block">
-          ODA_CONVERTER_PATH=&quot;C:\path\to\ODAFileConverter.exe&quot;
+          ODA_CONVERTER_PATH=&quot;C:\\path\\to\\ODAFileConverter.exe&quot;
         </code>
       </div>
 
