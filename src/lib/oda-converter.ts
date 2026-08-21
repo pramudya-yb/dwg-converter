@@ -13,6 +13,10 @@ async function getODAConverterPath(): Promise<string | null> {
   return cachedODAPath;
 }
 
+export function resetODAConverterCache(): void {
+  cachedODAPath = undefined;
+}
+
 // All supported AutoCAD versions for conversion
 export const AUTOCAD_VERSIONS = [
   { code: 'ACAD9', name: 'AutoCAD R9', year: '1987', acadver: 'AC1004' },

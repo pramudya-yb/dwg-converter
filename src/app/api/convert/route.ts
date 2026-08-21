@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { convertFile, AUTOCAD_VERSIONS, type OutputFormat } from '@/lib/oda-converter';
-import { createTempDir, cleanupTempDir, isValidCADFile, sanitizeFileName } from '@/lib/file-utils';
+import { convertFile, AUTOCAD_VERSIONS, resetODAConverterCache, type OutputFormat } from '@/lib/oda-converter';
+import { createTempDir, cleanupTempDir, cleanupOldTempDirs, isValidCADFile, sanitizeFileName } from '@/lib/file-utils';
 import path from 'path';
 import fs from 'fs/promises';
 import { createWriteStream } from 'fs';
 import * as archiverNamespace from 'archiver';
 const archiver = (archiverNamespace as any).default || archiverNamespace;
 
+// Run periodic temp cleanup once per server lifetime (best-effort).
+let cleanupStarted = false;
+function ensureCleanupStarted() {
+  if (cleanupStarted) return;
+  cleanupStarted = true;
+  cleanupOldTempDirs().catch(() => {});
+  setInterval(() => { cleanupOldTempDirs().catch(() => {}); }, 60 * 60 * 1000);
+}
+
 
 export async function POST(request: NextRequest) {
+  ensureCleanupStarted();
   let tempDir: string | null = null;
 
   try {
     const formData = await request.formData();
+    // Force re-detection of ODA converter per request so a freshly-installed binary
+    // is picked up without restarting the server.
+    resetODAConverterCache();
     const files = formData.getAll('files') as File[];
     const targetVersion = formData.get('targetVersion') as string;
     const outputFormat = (formData.get('outputFormat') as string || 'DWG') as OutputFormat;
@@ -48,16 +61,16 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         let errorMessage = 'External conversion failed';
-        let errorDetails = null;
+        let errorDetails: unknown = null;
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
           errorDetails = errorData.details || null;
-          
+
           if (errorDetails && Array.isArray(errorDetails) && errorDetails.length > 0 && errorDetails[0].error) {
             errorMessage += '\n\nDetail:\n' + errorDetails[0].error;
           }
-        } catch (e) {}
+        } catch {}
         return NextResponse.json({ error: errorMessage, details: errorDetails }, { status: response.status });
       }
 
@@ -84,6 +97,7 @@ export async function POST(request: NextRequest) {
     // Save uploaded files and convert
     const results: Array<{ name: string; success: boolean; outputPath?: string; error?: string; duration?: number }> = [];
 
+    let i = 0;
     for (const file of files) {
       const safeName = sanitizeFileName(file.name);
 
@@ -92,8 +106,8 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Save to temp
-      const filePath = path.join(tempDir, safeName);
+      // Save to temp; prefix with a per-request id segment so duplicate names don't collide on disk
+      const filePath = path.join(tempDir, `${i++}_${safeName}`);
       const arrayBuffer = await file.arrayBuffer();
       await fs.writeFile(filePath, Buffer.from(arrayBuffer));
 
@@ -130,7 +144,9 @@ export async function POST(request: NextRequest) {
     if (successResults.length === 1 && files.length === 1) {
       const outputPath = successResults[0].outputPath!;
       const fileBuffer = await fs.readFile(outputPath);
-      const fileName = path.basename(outputPath).replace(/[\r\n"]/g, '_');
+      const rawName = path.basename(outputPath);
+      const fileName = rawName.replace(/[\r\n"]/g, '_');
+      const encodedName = encodeURIComponent(rawName);
 
       // Schedule cleanup
       setTimeout(() => cleanupTempDir(tempDir!), 5000);
@@ -138,7 +154,7 @@ export async function POST(request: NextRequest) {
       return new NextResponse(fileBuffer, {
         headers: {
           'Content-Type': 'application/octet-stream',
-          'Content-Disposition': `attachment; filename="${fileName}"`,
+          'Content-Disposition': `attachment; filename="${fileName}"; filename*=UTF-8''${encodedName}`,
           'X-Conversion-Results': JSON.stringify(results),
         },
       });
@@ -182,12 +198,15 @@ export async function POST(request: NextRequest) {
     // Schedule cleanup
     setTimeout(() => cleanupTempDir(tempDir!), 5000);
 
+    const rawName = `converted_${targetVersion || 'unknown'}_${outputFormat}.zip`;
     const safeVersion = (targetVersion || 'unknown').replace(/[^A-Za-z0-9._-]/g, '_');
-    const safeFormat = outputFormat.replace(/[^A-Za-z0-9]/g, '');
+    const safeFormat = String(outputFormat).replace(/[^A-Za-z0-9]/g, '');
+    const asciiName = `converted_${safeVersion}_${safeFormat}.zip`;
+    const encodedName = encodeURIComponent(rawName);
     return new NextResponse(zipBuffer, {
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="converted_${safeVersion}_${safeFormat}.zip"`,
+        'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
         'X-Conversion-Results': JSON.stringify(results),
       },
     });

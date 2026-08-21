@@ -12,6 +12,9 @@ import CrsSelector from '@/components/CrsSelector';
 type OutputFormat = 'DWG' | 'DXF' | 'SHP';
 
 function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
   return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
 }
 
@@ -27,17 +30,24 @@ export default function Home() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [targetCRS, setTargetCRS] = useState<string>('');
+  const [lastConvertedCount, setLastConvertedCount] = useState<number>(0);
 
   // Check ODA installation on mount
   useEffect(() => {
+    let cancelled = false;
     fetch('/api/check-oda')
       .then(res => res.json())
       .then(data => {
+        if (cancelled) return;
         setOdaInstalled(data.installed);
       })
       .catch(() => {
+        if (cancelled) return;
         setOdaInstalled(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleFilesAdded = useCallback((newFiles: File[]) => {
@@ -94,6 +104,7 @@ export default function Home() {
     setConversionDone(false);
     setDownloadUrl(null);
     setErrorMsg(null);
+    setLastConvertedCount(files.length);
 
     // Update all files to converting status
     setFiles(prev => prev.map(f => ({ ...f, status: 'converting' as const, progress: 10 })));
@@ -107,6 +118,8 @@ export default function Home() {
         return f;
       }));
     }, 500);
+
+    const controller = new AbortController();
 
     try {
       const formData = new FormData();
@@ -122,13 +135,18 @@ export default function Home() {
       const response = await fetch('/api/convert', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
 
       clearInterval(progressInterval);
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Konversi gagal');
+        let errMessage = 'Konversi gagal';
+        try {
+          const errData = await response.json();
+          errMessage = errData.error || errMessage;
+        } catch {}
+        throw new Error(errMessage);
       }
 
       // Get conversion results from header
@@ -146,7 +164,7 @@ export default function Home() {
       // Determine filename
       const contentDisposition = response.headers.get('Content-Disposition');
       const defaultExt = outputFormat === 'SHP' ? 'zip' : outputFormat.toLowerCase();
-      let filename = `converted_${selectedVersion}.${defaultExt}`;
+      let filename = `converted_${selectedVersion || 'output'}.${defaultExt}`;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="(.+)"/);
         if (match) filename = match[1];
@@ -181,6 +199,7 @@ export default function Home() {
       })));
     } finally {
       setIsConverting(false);
+      controller.abort();
     }
   };
 
@@ -390,7 +409,7 @@ export default function Home() {
                         <div>
                           <div className="download-card-title">Konversi Berhasil!</div>
                           <div className="download-card-size">
-                            {files.filter(f => f.status === 'done').length} dari {files.length} file berhasil dikonversi
+                            {files.filter(f => f.status === 'done').length} dari {lastConvertedCount} file berhasil dikonversi
                           </div>
                         </div>
                       </div>

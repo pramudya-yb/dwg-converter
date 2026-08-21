@@ -266,6 +266,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Limit preview parsing to 50MB to avoid OOM on giant text-encoded DXFs
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'File too large for preview (max 50MB).' },
+        { status: 413 }
+      );
+    }
+
     const content = await file.text();
     const previewData = parseDXFContent(content);
 

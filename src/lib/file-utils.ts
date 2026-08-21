@@ -29,11 +29,11 @@ export function isValidCADFile(filename: string): boolean {
   return ext === '.dwg' || ext === '.dxf';
 }
 
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+export function formatFileSize(bytes: number | undefined | null): string {
+  if (bytes === undefined || bytes === null || !isFinite(bytes) || bytes <= 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
@@ -44,6 +44,7 @@ export function sanitizeFileName(name: string): string {
 // Cleanup old temp directories (older than 1 hour)
 export async function cleanupOldTempDirs(): Promise<void> {
   try {
+    await fs.mkdir(TEMP_BASE, { recursive: true });
     const dirs = await fs.readdir(TEMP_BASE);
     const oneHourAgo = Date.now() - 3600000;
 
@@ -51,7 +52,7 @@ export async function cleanupOldTempDirs(): Promise<void> {
       const dirPath = path.join(TEMP_BASE, dir);
       try {
         const stat = await fs.stat(dirPath);
-        if (stat.mtimeMs < oneHourAgo) {
+        if (stat.isDirectory() && stat.mtimeMs < oneHourAgo) {
           await fs.rm(dirPath, { recursive: true, force: true });
         }
       } catch {}
