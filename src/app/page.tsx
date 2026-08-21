@@ -166,8 +166,14 @@ export default function Home() {
       const defaultExt = outputFormat === 'SHP' ? 'zip' : outputFormat.toLowerCase();
       let filename = `converted_${selectedVersion || 'output'}.${defaultExt}`;
       if (contentDisposition) {
-        const match = contentDisposition.match(/filename="(.+)"/);
-        if (match) filename = match[1];
+        // Prefer RFC 5987 filename* (UTF-8) for non-ASCII safety; fall back to ASCII filename=
+        const starMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (starMatch) {
+          try { filename = decodeURIComponent(starMatch[1]); } catch { filename = starMatch[1]; }
+        } else {
+          const match = contentDisposition.match(/filename="([^"]+)"/);
+          if (match) filename = match[1];
+        }
       }
       setDownloadName(filename);
 

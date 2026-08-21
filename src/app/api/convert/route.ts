@@ -144,7 +144,8 @@ export async function POST(request: NextRequest) {
     if (successResults.length === 1 && files.length === 1) {
       const outputPath = successResults[0].outputPath!;
       const fileBuffer = await fs.readFile(outputPath);
-      const rawName = path.basename(outputPath);
+      // Strip the per-request "0_" prefix that prevents name collisions in temp dir
+      const rawName = path.basename(outputPath).replace(/^\d+_/, '');
       const fileName = rawName.replace(/[\r\n"]/g, '_');
       const encodedName = encodeURIComponent(rawName);
 
@@ -186,7 +187,9 @@ export async function POST(request: NextRequest) {
 
       for (const result of successResults) {
         if (result.outputPath) {
-          archive.file(result.outputPath, { name: path.basename(result.outputPath) });
+          // Strip the per-request "0_myfile.dwg" prefix so users see clean names in the ZIP
+          const cleanName = path.basename(result.outputPath).replace(/^\d+_/, '');
+          archive.file(result.outputPath, { name: cleanName });
         }
       }
 

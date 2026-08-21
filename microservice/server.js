@@ -58,10 +58,11 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
   try {
     const results = [];
 
+    let i = 0;
     for (const file of files) {
       const originalName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const sourceFilePath = path.join(tempDir, originalName);
-      
+      const sourceFilePath = path.join(tempDir, `${i++}_${originalName}`);
+
       await fsPromises.rename(file.path, sourceFilePath);
 
       const result = await convertFile({
@@ -91,19 +92,24 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
 
     if (successResults.length === 1 && files.length === 1) {
       const outputPath = successResults[0].outputPath;
-      const fileName = path.basename(outputPath).replace(/[\r\n"]/g, '_');
+      const rawName = path.basename(outputPath).replace(/^\d+_/, '');
+      const fileName = rawName.replace(/[\r\n"]/g, '_');
+      const encodedName = encodeURIComponent(rawName);
 
       res.set({
         'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Disposition': `attachment; filename="${fileName}"; filename*=UTF-8''${encodedName}`,
         'X-Conversion-Results': JSON.stringify(results),
       });
-      
+
       const fileStream = fs.createReadStream(outputPath);
       fileStream.pipe(res);
-      
+
       fileStream.on('close', () => {
         fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      });
+      fileStream.on('error', () => {
+        if (!res.headersSent) res.status(500).json({ error: 'Stream failed' });
       });
       return;
     }
@@ -120,11 +126,14 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
       if (!res.headersSent) res.status(500).json({ error: err.message });
       return;
     }
+    const rawName = `converted_${targetVersion || 'unknown'}_${outputFormat}.zip`;
     const safeVersion = (targetVersion || 'unknown').replace(/[^A-Za-z0-9._-]/g, '_');
     const safeFormat = String(outputFormat).replace(/[^A-Za-z0-9]/g, '');
+    const asciiName = `converted_${safeVersion}_${safeFormat}.zip`;
+    const encodedName = encodeURIComponent(rawName);
     res.set({
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="converted_${safeVersion}_${safeFormat}.zip"`,
+      'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
       'X-Conversion-Results': JSON.stringify(results),
     });
 
@@ -147,7 +156,8 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
 
     for (const result of successResults) {
       if (result.outputPath) {
-        archive.file(result.outputPath, { name: path.basename(result.outputPath) });
+        const cleanName = path.basename(result.outputPath).replace(/^\d+_/, '');
+        archive.file(result.outputPath, { name: cleanName });
       }
     }
 
