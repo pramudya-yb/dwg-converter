@@ -6,11 +6,19 @@ export async function GET() {
     const externalUrl = process.env.EXTERNAL_CONVERTER_URL;
     if (externalUrl) {
       // Check the microservice
-      const response = await fetch(`${externalUrl}/api/check-oda`, { cache: 'no-store' });
-      if (response.ok) {
-        const data = await response.json();
-        return NextResponse.json(data);
-      }
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(`${externalUrl}/api/check-oda`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (response.ok) {
+          const data = await response.json();
+          return NextResponse.json(data);
+        }
+      } catch {}
       return NextResponse.json({ installed: false, error: 'External converter unavailable' });
     }
 

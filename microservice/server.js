@@ -14,7 +14,10 @@ const port = process.env.PORT || 7860;
 app.use(cors());
 app.use(express.json());
 
-const upload = multer({ dest: os.tmpdir() });
+const upload = multer({
+  dest: os.tmpdir(),
+  limits: { fileSize: 200 * 1024 * 1024, files: 50 },
+});
 
 app.get('/', (req, res) => {
   res.json({ message: 'DWG/DXF Conversion Microservice is running.' });
@@ -88,8 +91,8 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
 
     if (successResults.length === 1 && files.length === 1) {
       const outputPath = successResults[0].outputPath;
-      const fileName = path.basename(outputPath);
-      
+      const fileName = path.basename(outputPath).replace(/[\r\n"]/g, '_');
+
       res.set({
         'Content-Type': 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${fileName}"`,
@@ -105,30 +108,40 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
       return;
     }
 
-    const zipPath = path.join(tempDir, 'converted_files.zip');
-    const output = fs.createWriteStream(zipPath);
-    const archive = archiver('zip', { zlib: { level: 6 } });
+  const zipPath = path.join(tempDir, 'converted_files.zip');
+  const output = fs.createWriteStream(zipPath);
+  const archive = archiver('zip', { zlib: { level: 6 } });
 
-    output.on('close', () => {
-      res.set({
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="converted_${targetVersion}_${outputFormat}.zip"`,
-        'X-Conversion-Results': JSON.stringify(results),
-      });
-      
-      const zipStream = fs.createReadStream(zipPath);
-      zipStream.pipe(res);
-      
-      zipStream.on('close', () => {
-        fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-      });
+  let settled = false;
+  const finish = (err) => {
+    if (settled) return;
+    settled = true;
+    if (err) {
+      if (!res.headersSent) res.status(500).json({ error: err.message });
+      return;
+    }
+    const safeVersion = (targetVersion || 'unknown').replace(/[^A-Za-z0-9._-]/g, '_');
+    const safeFormat = String(outputFormat).replace(/[^A-Za-z0-9]/g, '');
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="converted_${safeVersion}_${safeFormat}.zip"`,
+      'X-Conversion-Results': JSON.stringify(results),
     });
 
-    archive.on('error', (err) => {
-      if (!res.headersSent) {
-        res.status(500).json({ error: err.message });
-      }
+    const zipStream = fs.createReadStream(zipPath);
+    zipStream.pipe(res);
+
+    zipStream.on('close', () => {
+      fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
     });
+  };
+
+  output.on('close', () => finish());
+  output.on('error', (err) => finish(err));
+  archive.on('error', (err) => finish(err));
+  archive.on('warning', (err) => {
+    if (err && err.code === 'ENOENT') finish(err);
+  });
 
     archive.pipe(output);
 

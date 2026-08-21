@@ -33,11 +33,18 @@ export async function POST(request: NextRequest) {
     }
     if (externalUrl) {
       // Forward the entire FormData to the external microservice
-      const response = await fetch(`${externalUrl}/api/convert`, {
-        method: 'POST',
-        body: formData,
-        // Let fetch automatically handle multipart/form-data boundary
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 180000);
+      let response: Response;
+      try {
+        response = await fetch(`${externalUrl}/api/convert`, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
 
       if (!response.ok) {
         let errorMessage = 'External conversion failed';
@@ -123,7 +130,7 @@ export async function POST(request: NextRequest) {
     if (successResults.length === 1 && files.length === 1) {
       const outputPath = successResults[0].outputPath!;
       const fileBuffer = await fs.readFile(outputPath);
-      const fileName = path.basename(outputPath);
+      const fileName = path.basename(outputPath).replace(/[\r\n"]/g, '_');
 
       // Schedule cleanup
       setTimeout(() => cleanupTempDir(tempDir!), 5000);
@@ -144,8 +151,20 @@ export async function POST(request: NextRequest) {
       const output = createWriteStream(zipPath);
       const archive = archiver('zip', { zlib: { level: 6 } });
 
-      output.on('close', resolve);
-      archive.on('error', reject);
+      let settled = false;
+      const settle = (err?: unknown) => {
+        if (settled) return;
+        settled = true;
+        if (err) reject(err instanceof Error ? err : new Error(String(err)));
+        else resolve();
+      };
+
+      output.on('close', () => settle());
+      output.on('error', (err) => settle(err));
+      archive.on('error', (err: Error) => settle(err));
+      archive.on('warning', (err: Error) => {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') settle(err);
+      });
 
       archive.pipe(output);
 
