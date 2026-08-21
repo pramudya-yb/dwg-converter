@@ -96,14 +96,14 @@ export default function FileUploader({ files, onFilesAdded, onFileRemove, onClea
     fileInputRef.current?.click();
   };
 
-  const statusIcons: Record<string, string> = {
+  const statusIcons: Record<UploadedFile['status'], string> = {
     pending: '⏳',
     converting: '⚙️',
     done: '✅',
     error: '❌',
   };
 
-  const statusTexts: Record<string, string> = {
+  const statusTexts: Record<UploadedFile['status'], string> = {
     pending: 'Siap dikonversi',
     converting: 'Mengkonversi...',
     done: 'Selesai',

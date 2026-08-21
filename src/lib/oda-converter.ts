@@ -6,6 +6,13 @@ import { existsSync } from 'fs';
 
 const execAsync = promisify(exec);
 
+let cachedODAPath: string | null | undefined;
+async function getODAConverterPath(): Promise<string | null> {
+  if (cachedODAPath !== undefined) return cachedODAPath;
+  cachedODAPath = await findODAConverter();
+  return cachedODAPath;
+}
+
 // All supported AutoCAD versions for conversion
 export const AUTOCAD_VERSIONS = [
   { code: 'ACAD9', name: 'AutoCAD R9', year: '1987', acadver: 'AC1004' },
@@ -86,7 +93,7 @@ export interface ConversionResult {
 export async function convertFile(options: ConversionOptions): Promise<ConversionResult> {
   const startTime = Date.now();
 
-  const odaPath = await findODAConverter();
+  const odaPath = await getODAConverterPath();
   if (!odaPath) {
     return { success: false, error: 'ODA File Converter not found. Please install it first.' };
   }

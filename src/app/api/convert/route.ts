@@ -163,10 +163,12 @@ export async function POST(request: NextRequest) {
     // Schedule cleanup
     setTimeout(() => cleanupTempDir(tempDir!), 5000);
 
+    const safeVersion = (targetVersion || 'unknown').replace(/[^A-Za-z0-9._-]/g, '_');
+    const safeFormat = outputFormat.replace(/[^A-Za-z0-9]/g, '');
     return new NextResponse(zipBuffer, {
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="converted_${targetVersion}_${outputFormat}.zip"`,
+        'Content-Disposition': `attachment; filename="converted_${safeVersion}_${safeFormat}.zip"`,
         'X-Conversion-Results': JSON.stringify(results),
       },
     });

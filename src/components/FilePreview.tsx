@@ -260,24 +260,34 @@ export default function FilePreview({ file }: FilePreviewProps) {
     setZoom(1);
     setPan({ x: 0, y: 0 });
 
+    let cancelled = false;
     const reader = new FileReader();
     reader.onload = async (e) => {
+      if (cancelled) return;
       try {
         const content = e.target?.result as string;
         const data = await parseDXFLocally(content);
+        if (cancelled) return;
         setPreviewData(data);
       } catch (err) {
+        if (cancelled) return;
         setError('Gagal memparse file DXF');
         console.error(err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     reader.onerror = () => {
+      if (cancelled) return;
       setError('Gagal membaca file');
       setLoading(false);
     };
     reader.readAsText(file);
+
+    return () => {
+      cancelled = true;
+      if (reader.readyState !== 2) reader.abort();
+    };
   }, [file, isDXF, parseDXFLocally]);
 
   // Render canvas
@@ -292,14 +302,15 @@ export default function FilePreview({ file }: FilePreviewProps) {
     // Set canvas size
     const dpr = window.devicePixelRatio || 1;
     const rect = container.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-    ctx.scale(dpr, dpr);
-
     const width = rect.width;
     const height = rect.height;
+    if (width === 0 || height === 0) return;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
 
     // Clear
     ctx.fillStyle = '#050515';

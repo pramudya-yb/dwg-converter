@@ -41,16 +41,20 @@ export default function Home() {
   }, []);
 
   const handleFilesAdded = useCallback((newFiles: File[]) => {
-    const uploadedFiles: UploadedFile[] = newFiles.map(f => ({
-      id: generateId(),
-      file: f,
-      name: f.name,
-      size: f.size,
-      format: f.name.toLowerCase().endsWith('.dwg') ? 'DWG' as const : 'DXF' as const,
-      status: 'pending' as const,
-      progress: 0,
-    }));
-    setFiles(prev => [...prev, ...uploadedFiles]);
+    setFiles(prev => {
+      if (prev.length > 0 && downloadUrl) {
+        URL.revokeObjectURL(downloadUrl);
+      }
+      return [...prev, ...newFiles.map(f => ({
+        id: generateId(),
+        file: f,
+        name: f.name,
+        size: f.size,
+        format: f.name.toLowerCase().endsWith('.dwg') ? 'DWG' as const : 'DXF' as const,
+        status: 'pending' as const,
+        progress: 0,
+      }))];
+    });
     setConversionDone(false);
     setDownloadUrl(null);
     setErrorMsg(null);
@@ -60,12 +64,14 @@ export default function Home() {
     if (firstDxf && !previewFile) {
       setPreviewFile(firstDxf);
     }
-  }, [previewFile]);
+  }, [previewFile, downloadUrl]);
 
   const handleFileRemove = useCallback((id: string) => {
+    if (downloadUrl) {
+      URL.revokeObjectURL(downloadUrl);
+    }
     setFiles(prev => {
       const updated = prev.filter(f => f.id !== id);
-      // If removing the preview file, pick next DXF
       const removedFile = prev.find(f => f.id === id);
       if (removedFile && previewFile && removedFile.file === previewFile) {
         const nextDxf = updated.find(f => f.name.toLowerCase().endsWith('.dxf'));
@@ -75,7 +81,7 @@ export default function Home() {
     });
     setConversionDone(false);
     setDownloadUrl(null);
-  }, [previewFile]);
+  }, [previewFile, downloadUrl]);
 
   const handleConvert = async () => {
     if (files.length === 0 || (!selectedVersion && outputFormat !== 'SHP')) return;
