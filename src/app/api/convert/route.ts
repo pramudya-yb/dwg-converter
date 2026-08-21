@@ -4,16 +4,44 @@ import { createTempDir, cleanupTempDir, cleanupOldTempDirs, isValidCADFile, sani
 import path from 'path';
 import fs from 'fs/promises';
 import { createWriteStream } from 'fs';
-import * as archiverNamespace from 'archiver';
-const archiver = (archiverNamespace as any).default || archiverNamespace;
+import type { Archiver } from 'archiver';
+import * as archiverModule from 'archiver';
+
+function makeArchive(format: 'zip', opts: archiverModule.ZipOptions): Archiver {
+  // archiver is a CommonJS module that exports a callable factory.
+  return (archiverModule as unknown as (f: 'zip', o: archiverModule.ZipOptions) => Archiver)(format, opts);
+}
+
+async function rebuildFormData(original: FormData): Promise<FormData> {
+  const fd = new FormData();
+  for (const file of original.getAll('files')) {
+    fd.append('files', file);
+  }
+  const targetVersion = original.get('targetVersion');
+  const outputFormat = original.get('outputFormat');
+  const targetCRS = original.get('targetCRS');
+  if (targetVersion != null) fd.append('targetVersion', String(targetVersion));
+  if (outputFormat != null) fd.append('outputFormat', String(outputFormat));
+  if (targetCRS != null) fd.append('targetCRS', String(targetCRS));
+  return fd;
+}
 
 // Run periodic temp cleanup once per server lifetime (best-effort).
-let cleanupStarted = false;
+// Cleared on SIGTERM/SIGINT so hot-reload doesnt leak timers.
+let cleanupTimer: NodeJS.Timeout | null = null;
 function ensureCleanupStarted() {
-  if (cleanupStarted) return;
-  cleanupStarted = true;
+  if (cleanupTimer) return;
   cleanupOldTempDirs().catch(() => {});
-  setInterval(() => { cleanupOldTempDirs().catch(() => {}); }, 60 * 60 * 1000);
+  cleanupTimer = setInterval(() => { cleanupOldTempDirs().catch(() => {}); }, 60 * 60 * 1000);
+  if (cleanupTimer.unref) cleanupTimer.unref();
+  const stop = () => {
+    if (cleanupTimer) {
+      clearInterval(cleanupTimer);
+      cleanupTimer = null;
+    }
+  };
+  process.once('SIGTERM', stop);
+  process.once('SIGINT', stop);
 }
 
 
@@ -44,15 +72,16 @@ export async function POST(request: NextRequest) {
     if (outputFormat === 'SHP' && !externalUrl) {
       return NextResponse.json({ error: 'Shapefile (.SHP) conversion requires the external microservice to be configured. Please set EXTERNAL_CONVERTER_URL.' }, { status: 400 });
     }
-    if (externalUrl) {
-      // Forward the entire FormData to the external microservice
+    if (outputFormat === 'SHP' && externalUrl) {
+      // SHP requires GDAL/ogr2ogr — forward only shapefile jobs to the microservice.
+      const forwardData = await rebuildFormData(formData);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 180000);
       let response: Response;
       try {
         response = await fetch(`${externalUrl}/api/convert`, {
           method: 'POST',
-          body: formData,
+          body: forwardData,
           signal: controller.signal,
         });
       } finally {
@@ -166,7 +195,7 @@ export async function POST(request: NextRequest) {
 
     await new Promise<void>((resolve, reject) => {
       const output = createWriteStream(zipPath);
-      const archive = archiver('zip', { zlib: { level: 6 } });
+      const archive = makeArchive('zip', { zlib: { level: 6 } });
 
       let settled = false;
       const settle = (err?: unknown) => {

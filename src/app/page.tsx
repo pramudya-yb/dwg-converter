@@ -120,6 +120,7 @@ export default function Home() {
     }, 500);
 
     const controller = new AbortController();
+    let results: Array<{ name: string; success: boolean; error?: string }> = [];
 
     try {
       const formData = new FormData();
@@ -151,7 +152,6 @@ export default function Home() {
 
       // Get conversion results from header
       const resultsHeader = response.headers.get('X-Conversion-Results');
-      let results: Array<{ name: string; success: boolean; error?: string }> = [];
       if (resultsHeader) {
         try { results = JSON.parse(resultsHeader); } catch {}
       }
@@ -177,9 +177,11 @@ export default function Home() {
       }
       setDownloadName(filename);
 
-      // Update file statuses
+      // Update file statuses from server-side results (only files that the server
+      // actually processed get marked done/error; others stay as-is)
+      const resultByName = new Map(results.map(r => [r.name, r]));
       setFiles(prev => prev.map(f => {
-        const result = results.find(r => r.name === f.name);
+        const result = resultByName.get(f.name);
         if (result) {
           return {
             ...f,
@@ -197,12 +199,30 @@ export default function Home() {
       clearInterval(progressInterval);
       const message = err instanceof Error ? err.message : 'Terjadi kesalahan';
       setErrorMsg(message);
-      setFiles(prev => prev.map(f => ({
-        ...f,
-        status: 'error' as const,
-        progress: 0,
-        error: message,
-      })));
+      // Only mark files we have explicit server results for; leave any others
+      // (e.g. queued but never sent) untouched so users can retry.
+      if (results.length > 0) {
+        const resultByName = new Map(results.map(r => [r.name, r]));
+        setFiles(prev => prev.map(f => {
+          const result = resultByName.get(f.name);
+          if (result) {
+            return {
+              ...f,
+              status: result.success ? 'done' as const : 'error' as const,
+              progress: 100,
+              error: result.error,
+            };
+          }
+          return { ...f, status: 'error' as const, progress: 0, error: message };
+        }));
+      } else {
+        setFiles(prev => prev.map(f => ({
+          ...f,
+          status: 'error' as const,
+          progress: 0,
+          error: message,
+        })));
+      }
     } finally {
       setIsConverting(false);
       controller.abort();

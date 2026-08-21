@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useRef, useState } from 'react';
+import { formatFileSize } from '@/lib/format';
 
 export interface UploadedFile {
   id: string;
@@ -19,14 +20,6 @@ interface FileUploaderProps {
   onFilesAdded: (files: File[]) => void;
   onFileRemove: (id: string) => void;
   onClearAll?: () => void;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 export default function FileUploader({ files, onFilesAdded, onFileRemove, onClearAll }: FileUploaderProps) {

@@ -250,8 +250,10 @@ export default function FilePreview({ file }: FilePreviewProps) {
   // Load and parse DXF file
   useEffect(() => {
     if (!file || !isDXF) {
-      setPreviewData(null);
-      setError(null);
+      queueMicrotask(() => {
+        setPreviewData(null);
+        setError(null);
+      });
       return;
     }
 

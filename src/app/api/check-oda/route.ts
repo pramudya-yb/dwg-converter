@@ -3,7 +3,11 @@ import { findODAConverter, AUTOCAD_VERSIONS, resetODAConverterCache } from '@/li
 
 export async function GET() {
   try {
+    resetODAConverterCache();
+    const odaPath = await findODAConverter();
     const externalUrl = process.env.EXTERNAL_CONVERTER_URL;
+
+    let externalAvailable = false;
     if (externalUrl) {
       try {
         const controller = new AbortController();
@@ -15,24 +19,21 @@ export async function GET() {
         clearTimeout(timeout);
         if (response.ok) {
           const data = await response.json();
-          return NextResponse.json(data);
+          externalAvailable = !!data.installed;
         }
       } catch {}
-      return NextResponse.json({ installed: false, error: 'External converter unavailable' });
     }
 
-    // Always re-detect so freshly-installed ODA is picked up.
-    resetODAConverterCache();
-    const odaPath = await findODAConverter();
-
     return NextResponse.json({
-      installed: !!odaPath,
+      installed: !!odaPath || externalAvailable,
+      localOda: !!odaPath,
+      externalAvailable,
       path: odaPath,
       versions: AUTOCAD_VERSIONS,
     });
   } catch {
     return NextResponse.json(
-      { installed: false, error: 'Failed to check ODA installation' },
+      { installed: false, localOda: false, externalAvailable: false, error: 'Failed to check ODA installation' },
       { status: 500 }
     );
   }
