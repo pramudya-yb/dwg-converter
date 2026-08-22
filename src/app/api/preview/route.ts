@@ -158,6 +158,7 @@ function parseDXFContent(content: string): PreviewData {
       if (entityType === 'LWPOLYLINE' || entityType === 'POLYLINE') {
         const entity: PreviewEntity = { type: 'POLYLINE', points: [] };
         i += 2;
+        let currentX: number | null = null;
 
         while (i < lines.length) {
           const gc = lines[i]?.trim();
@@ -169,7 +170,6 @@ function parseDXFContent(content: string): PreviewData {
             }
             if (gv === 'SEQEND') {
               i += 2;
-              // skip SEQEND group codes
               while (i < lines.length && lines[i]?.trim() !== '0') i += 2;
               break;
             }
@@ -179,15 +179,14 @@ function parseDXFContent(content: string): PreviewData {
           switch (gc) {
             case '8': if (gv) { entity.layer = gv; layerSet.add(gv); } break;
             case '62': entity.color = parseInt(gv || '0'); break;
-            case '10': {
-              const x = parseFloat(gv || '0');
-              // Read the corresponding Y
-              let y = 0;
-              if (i + 2 < lines.length && lines[i + 2]?.trim() === '20') {
-                y = parseFloat(lines[i + 3]?.trim() || '0');
+            case '10': currentX = parseFloat(gv || '0'); break;
+            case '20': {
+              const y = parseFloat(gv || '0');
+              if (currentX !== null) {
+                entity.points!.push({ x: currentX, y });
+                updateBounds(currentX, y);
+                currentX = null;
               }
-              entity.points!.push({ x, y });
-              updateBounds(x, y);
               break;
             }
           }

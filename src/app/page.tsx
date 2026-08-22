@@ -225,7 +225,6 @@ export default function Home() {
       }
     } finally {
       setIsConverting(false);
-      controller.abort();
     }
   };
 
@@ -262,7 +261,7 @@ export default function Home() {
     setPreviewFile(null);
   };
 
-  const canConvert = files.length > 0 && (selectedVersion || outputFormat === 'SHP') && !isConverting && odaInstalled;
+  const canConvert = files.length > 0 && (selectedVersion || outputFormat === 'SHP') && !isConverting && (odaInstalled || outputFormat === 'SHP');
 
   return (
     <div className="page-wrapper">
@@ -387,7 +386,7 @@ export default function Home() {
                     </button>
 
                     {!odaInstalled && files.length > 0 && (
-                      <p style={{ marginTop: '12px', color: 'var(--warning)', fontSize: '0.85rem' }}>
+                      <p style={{ marginTop: '12px', color: '#f59e0b', fontSize: '0.85rem' }}>
                         ⚠️ ODA File Converter belum terinstall. Install terlebih dahulu untuk mengkonversi file.
                       </p>
                     )}
@@ -472,7 +471,7 @@ export default function Home() {
         textAlign: 'center',
         padding: '32px 0',
         marginTop: 'auto',
-        borderTop: '1px solid var(--border-glass)',
+        borderTop: '1px solid var(--border-light)',
         color: 'var(--text-muted)',
         fontSize: '0.8rem',
       }}>

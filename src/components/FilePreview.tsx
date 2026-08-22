@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 interface Point {
   x: number;
@@ -38,14 +38,54 @@ interface FilePreviewProps {
   file: File | null;
 }
 
+interface FetchState {
+  previewData: PreviewData | null;
+  loading: boolean;
+  error: string | null;
+  zoom: number;
+  pan: { x: number; y: number };
+}
+type FetchAction =
+  | { type: 'start' }
+  | { type: 'success'; data: PreviewData }
+  | { type: 'error'; message: string }
+  | { type: 'reset' }
+  | { type: 'zoomBy'; factor: number }
+  | { type: 'setZoom'; zoom: number }
+  | { type: 'setPan'; pan: { x: number; y: number } }
+  | { type: 'panBy'; dx: number; dy: number };
+
+function fetchReducer(state: FetchState, action: FetchAction): FetchState {
+  switch (action.type) {
+    case 'start':
+      return { ...state, previewData: null, loading: true, error: null, zoom: 1, pan: { x: 0, y: 0 } };
+    case 'success':
+      return { ...state, previewData: action.data, loading: false, error: null };
+    case 'error':
+      return { ...state, previewData: null, loading: false, error: action.message };
+    case 'reset':
+      return { ...state, previewData: null, loading: false, error: null };
+    case 'setZoom':
+      return { ...state, zoom: action.zoom };
+    case 'zoomBy':
+      return { ...state, zoom: Math.max(0.1, Math.min(10, state.zoom * action.factor)) };
+    case 'setPan':
+      return { ...state, pan: action.pan };
+    case 'panBy':
+      return { ...state, pan: { x: state.pan.x + action.dx, y: state.pan.y + action.dy } };
+  }
+}
+
 export default function FilePreview({ file }: FilePreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [{ previewData, loading, error, zoom, pan }, dispatch] = useReducer(fetchReducer, {
+    previewData: null,
+    loading: false,
+    error: null,
+    zoom: 1,
+    pan: { x: 0, y: 0 },
+  });
   const [isPanning, setIsPanning] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
 
@@ -247,20 +287,13 @@ export default function FilePreview({ file }: FilePreviewProps) {
     };
   }, []);
 
-  // Load and parse DXF file
   useEffect(() => {
     if (!file || !isDXF) {
-      queueMicrotask(() => {
-        setPreviewData(null);
-        setError(null);
-      });
+      dispatch({ type: 'reset' });
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
+    dispatch({ type: 'start' });
 
     let cancelled = false;
     const reader = new FileReader();
@@ -270,19 +303,16 @@ export default function FilePreview({ file }: FilePreviewProps) {
         const content = e.target?.result as string;
         const data = await parseDXFLocally(content);
         if (cancelled) return;
-        setPreviewData(data);
+        dispatch({ type: 'success', data });
       } catch (err) {
         if (cancelled) return;
-        setError('Gagal memparse file DXF');
+        dispatch({ type: 'error', message: 'Gagal memparse file DXF' });
         console.error(err);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     };
     reader.onerror = () => {
       if (cancelled) return;
-      setError('Gagal membaca file');
-      setLoading(false);
+      dispatch({ type: 'error', message: 'Gagal membaca file' });
     };
     reader.readAsText(file);
 
@@ -381,7 +411,7 @@ export default function FilePreview({ file }: FilePreviewProps) {
         }
 
         case 'CIRCLE': {
-          if (entity.center && entity.radius) {
+          if (entity.center && entity.radius != null) {
             const [cx, cy] = toScreen(entity.center.x, entity.center.y);
             const r = entity.radius * scale;
             ctx.beginPath();
@@ -392,7 +422,7 @@ export default function FilePreview({ file }: FilePreviewProps) {
         }
 
         case 'ARC': {
-          if (entity.center && entity.radius) {
+          if (entity.center && entity.radius != null) {
             const [cx, cy] = toScreen(entity.center.x, entity.center.y);
             const r = entity.radius * scale;
             const sa = -(entity.startAngle || 0) * Math.PI / 180;
@@ -437,11 +467,16 @@ export default function FilePreview({ file }: FilePreviewProps) {
 
   }, [previewData, zoom, pan]);
 
-  // Mouse handlers for pan/zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom(z => Math.max(0.1, Math.min(10, z * factor)));
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 0.9 : 1.1;
+      dispatch({ type: 'zoomBy', factor });
+    };
+    container.addEventListener('wheel', onWheel, { passive: false });
+    return () => container.removeEventListener('wheel', onWheel);
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -453,7 +488,7 @@ export default function FilePreview({ file }: FilePreviewProps) {
     if (!isPanning) return;
     const dx = e.clientX - lastMousePos.current.x;
     const dy = e.clientY - lastMousePos.current.y;
-    setPan(p => ({ x: p.x + dx, y: p.y - dy }));
+    dispatch({ type: 'panBy', dx, dy: -dy });
     lastMousePos.current = { x: e.clientX, y: e.clientY };
   }, [isPanning]);
 
@@ -462,8 +497,8 @@ export default function FilePreview({ file }: FilePreviewProps) {
   }, []);
 
   const resetView = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
+    dispatch({ type: 'setZoom', zoom: 1 });
+    dispatch({ type: 'setPan', pan: { x: 0, y: 0 } });
   };
 
   if (!file) return null;
@@ -484,10 +519,10 @@ export default function FilePreview({ file }: FilePreviewProps) {
           )}
         </span>
         <div style={{ display: 'flex', gap: '4px' }}>
-          <button className="preview-control-btn" onClick={() => setZoom(z => Math.min(10, z * 1.2))} title="Zoom In">
+          <button className="preview-control-btn" onClick={() => dispatch({ type: 'zoomBy', factor: 1.2 })} title="Zoom In">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
           </button>
-          <button className="preview-control-btn" onClick={() => setZoom(z => Math.max(0.1, z * 0.8))} title="Zoom Out">
+          <button className="preview-control-btn" onClick={() => dispatch({ type: 'zoomBy', factor: 0.8 })} title="Zoom Out">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
           </button>
           <button className="preview-control-btn" onClick={resetView} title="Reset View">
@@ -498,7 +533,6 @@ export default function FilePreview({ file }: FilePreviewProps) {
       <div
         ref={containerRef}
         className="preview-canvas-container"
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

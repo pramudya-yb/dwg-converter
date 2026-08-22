@@ -83,7 +83,7 @@ async function convertFile(options) {
   }
 
   try {
-    const { stdout, stderr } = await execAsync(command, { timeout: 120000 });
+    await execAsync(command, { timeout: 120000 });
 
     const files = await fs.promises.readdir(tempOutputDir);
     let outputFile = files.find(f => f.toLowerCase().endsWith(searchExt));

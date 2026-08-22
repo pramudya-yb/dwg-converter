@@ -165,7 +165,10 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
 
   } catch (error) {
     await fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    if (!res.headersSent) {
+      const message = error instanceof Error ? error.message : 'Internal server error';
+      res.status(500).json({ error: message });
+    }
   }
 });
 
