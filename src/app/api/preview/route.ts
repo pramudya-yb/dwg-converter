@@ -44,7 +44,7 @@ function parseDXFContent(content: string): PreviewData {
   let i = 0;
   let inEntities = false;
 
-  while (i < lines.length) {
+  while (i < lines.length - 1) {
     const code = lines[i]?.trim();
     const value = lines[i + 1]?.trim();
 
@@ -72,7 +72,7 @@ function parseDXFContent(content: string): PreviewData {
         let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
         i += 2;
 
-        while (i < lines.length) {
+        while (i < lines.length - 1) {
           const gc = lines[i]?.trim();
           const gv = lines[i + 1]?.trim();
           if (gc === '0') break;
@@ -100,7 +100,7 @@ function parseDXFContent(content: string): PreviewData {
         let cx = 0, cy = 0, r = 0;
         i += 2;
 
-        while (i < lines.length) {
+        while (i < lines.length - 1) {
           const gc = lines[i]?.trim();
           const gv = lines[i + 1]?.trim();
           if (gc === '0') break;
@@ -128,7 +128,7 @@ function parseDXFContent(content: string): PreviewData {
         let cx = 0, cy = 0, r = 0, sa = 0, ea = 360;
         i += 2;
 
-        while (i < lines.length) {
+        while (i < lines.length - 1) {
           const gc = lines[i]?.trim();
           const gv = lines[i + 1]?.trim();
           if (gc === '0') break;
@@ -160,7 +160,7 @@ function parseDXFContent(content: string): PreviewData {
         i += 2;
         let currentX: number | null = null;
 
-        while (i < lines.length) {
+        while (i < lines.length - 1) {
           const gc = lines[i]?.trim();
           const gv = lines[i + 1]?.trim();
           if (gc === '0') {
@@ -202,7 +202,7 @@ function parseDXFContent(content: string): PreviewData {
         let x = 0, y = 0;
         i += 2;
 
-        while (i < lines.length) {
+        while (i < lines.length - 1) {
           const gc = lines[i]?.trim();
           const gv = lines[i + 1]?.trim();
           if (gc === '0') break;

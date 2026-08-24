@@ -3,6 +3,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const os = require('os');
+const archiver = require('archiver');
 
 const execAsync = promisify(exec);
 
@@ -112,7 +113,8 @@ async function convertFile(options) {
           { suffix: 'multipatch', nlt: 'MULTIPATCH' }
         ];
 
-        const srsFlag = options.targetCRS ? `-a_srs "${options.targetCRS}" ` : '';
+        const safeCRS = options.targetCRS ? options.targetCRS.replace(/[^A-Za-z0-9:._-]/g, '') : '';
+        const srsFlag = safeCRS ? `-a_srs "${safeCRS}" ` : '';
 
         for (const t of geomTypes) {
           const shpFile = path.join(shapeOutputDir, `${baseName}_${t.suffix}.shp`);
@@ -124,8 +126,16 @@ async function convertFile(options) {
           }
         }
 
-        const zipCommand = `cd "${shapeOutputDir}" && zip -r "${finalPath}" .`;
-        await execAsync(zipCommand, { timeout: 60000 });
+        await new Promise((resolve, reject) => {
+          const zipOutput = fs.createWriteStream(finalPath);
+          const archive = archiver('zip', { zlib: { level: 6 } });
+          zipOutput.on('close', resolve);
+          zipOutput.on('error', reject);
+          archive.on('error', reject);
+          archive.pipe(zipOutput);
+          archive.directory(shapeOutputDir, false);
+          archive.finalize();
+        });
       } catch (err) {
         throw new Error('Shapefile conversion failed: ' + err.message);
       } finally {

@@ -10,9 +10,10 @@ export async function GET() {
     let externalAvailable = false;
     if (externalUrl) {
       try {
+        const cleanUrl = externalUrl.replace(/\/+$/, '');
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
-        const response = await fetch(`${externalUrl}/api/check-oda`, {
+        const response = await fetch(`${cleanUrl}/api/check-oda`, {
           cache: 'no-store',
           signal: controller.signal,
         });

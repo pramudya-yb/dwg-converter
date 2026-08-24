@@ -63,7 +63,7 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
       const originalName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       const sourceFilePath = path.join(tempDir, `${i++}_${originalName}`);
 
-      await fsPromises.rename(file.path, sourceFilePath);
+      await fsPromises.copyFile(file.path, sourceFilePath);
 
       const result = await convertFile({
         sourceFilePath: sourceFilePath,
@@ -109,48 +109,54 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
         fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
       });
       fileStream.on('error', () => {
+        fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
         if (!res.headersSent) res.status(500).json({ error: 'Stream failed' });
       });
       return;
     }
 
-  const zipPath = path.join(tempDir, 'converted_files.zip');
-  const output = fs.createWriteStream(zipPath);
-  const archive = archiver('zip', { zlib: { level: 6 } });
+    const zipPath = path.join(tempDir, 'converted_files.zip');
+    const output = fs.createWriteStream(zipPath);
+    const archive = archiver('zip', { zlib: { level: 6 } });
 
-  let settled = false;
-  const finish = (err) => {
-    if (settled) return;
-    settled = true;
-    if (err) {
-      if (!res.headersSent) res.status(500).json({ error: err.message });
-      return;
-    }
-    const rawName = `converted_${targetVersion || 'unknown'}_${outputFormat}.zip`;
-    const safeVersion = (targetVersion || 'unknown').replace(/[^A-Za-z0-9._-]/g, '_');
-    const safeFormat = String(outputFormat).replace(/[^A-Za-z0-9]/g, '');
-    const asciiName = `converted_${safeVersion}_${safeFormat}.zip`;
-    const encodedName = encodeURIComponent(rawName);
-    res.set({
-      'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
-      'X-Conversion-Results': JSON.stringify(results),
+    let settled = false;
+    const finish = (err) => {
+      if (settled) return;
+      settled = true;
+      if (err) {
+        fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+        if (!res.headersSent) res.status(500).json({ error: err.message });
+        return;
+      }
+      const rawName = `converted_${targetVersion || 'unknown'}_${outputFormat}.zip`;
+      const safeVersion = (targetVersion || 'unknown').replace(/[^A-Za-z0-9._-]/g, '_');
+      const safeFormat = String(outputFormat).replace(/[^A-Za-z0-9]/g, '');
+      const asciiName = `converted_${safeVersion}_${safeFormat}.zip`;
+      const encodedName = encodeURIComponent(rawName);
+      res.set({
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
+        'X-Conversion-Results': JSON.stringify(results),
+      });
+
+      const zipStream = fs.createReadStream(zipPath);
+      zipStream.pipe(res);
+
+      zipStream.on('close', () => {
+        fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      });
+      zipStream.on('error', () => {
+        fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+        if (!res.headersSent) res.status(500).json({ error: 'Zip stream failed' });
+      });
+    };
+
+    output.on('close', () => finish());
+    output.on('error', (err) => finish(err));
+    archive.on('error', (err) => finish(err));
+    archive.on('warning', (err) => {
+      if (err && err.code === 'ENOENT') finish(err);
     });
-
-    const zipStream = fs.createReadStream(zipPath);
-    zipStream.pipe(res);
-
-    zipStream.on('close', () => {
-      fsPromises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    });
-  };
-
-  output.on('close', () => finish());
-  output.on('error', (err) => finish(err));
-  archive.on('error', (err) => finish(err));
-  archive.on('warning', (err) => {
-    if (err && err.code === 'ENOENT') finish(err);
-  });
 
     archive.pipe(output);
 
@@ -168,6 +174,12 @@ app.post('/api/convert', upload.array('files'), async (req, res) => {
     if (!res.headersSent) {
       const message = error instanceof Error ? error.message : 'Internal server error';
       res.status(500).json({ error: message });
+    }
+  } finally {
+    if (files) {
+      for (const file of files) {
+        await fsPromises.unlink(file.path).catch(() => {});
+      }
     }
   }
 });

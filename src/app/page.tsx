@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Header from '@/components/Header';
 import FileUploader, { type UploadedFile } from '@/components/FileUploader';
 import VersionGrid from '@/components/VersionGrid';
@@ -32,6 +32,21 @@ export default function Home() {
   const [targetCRS, setTargetCRS] = useState<string>('');
   const [lastConvertedCount, setLastConvertedCount] = useState<number>(0);
 
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Clear progress interval and fetch request on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   // Check ODA installation on mount
   useEffect(() => {
     let cancelled = false;
@@ -51,10 +66,11 @@ export default function Home() {
   }, []);
 
   const handleFilesAdded = useCallback((newFiles: File[]) => {
+    if (downloadUrl) {
+      URL.revokeObjectURL(downloadUrl);
+      setDownloadUrl(null);
+    }
     setFiles(prev => {
-      if (prev.length > 0 && downloadUrl) {
-        URL.revokeObjectURL(downloadUrl);
-      }
       return [...prev, ...newFiles.map(f => ({
         id: generateId(),
         file: f,
@@ -85,7 +101,7 @@ export default function Home() {
       const removedFile = prev.find(f => f.id === id);
       if (removedFile && previewFile && removedFile.file === previewFile) {
         const nextDxf = updated.find(f => f.name.toLowerCase().endsWith('.dxf'));
-        setPreviewFile(nextDxf?.file || null);
+        setTimeout(() => setPreviewFile(nextDxf?.file || null), 0);
       }
       return updated;
     });
@@ -118,8 +134,10 @@ export default function Home() {
         return f;
       }));
     }, 500);
+    progressIntervalRef.current = progressInterval;
 
     const controller = new AbortController();
+    abortControllerRef.current = controller;
     let results: Array<{ name: string; success: boolean; error?: string }> = [];
 
     try {
@@ -140,6 +158,7 @@ export default function Home() {
       });
 
       clearInterval(progressInterval);
+      progressIntervalRef.current = null;
 
       if (!response.ok) {
         let errMessage = 'Konversi gagal';
@@ -196,7 +215,10 @@ export default function Home() {
       setConversionDone(true);
 
     } catch (err) {
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       const message = err instanceof Error ? err.message : 'Terjadi kesalahan';
       setErrorMsg(message);
       // Only mark files we have explicit server results for; leave any others
@@ -225,6 +247,7 @@ export default function Home() {
       }
     } finally {
       setIsConverting(false);
+      abortControllerRef.current = null;
     }
   };
 

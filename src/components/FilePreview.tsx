@@ -293,6 +293,11 @@ export default function FilePreview({ file }: FilePreviewProps) {
       return;
     }
 
+    if (file.size > 50 * 1024 * 1024) {
+      dispatch({ type: 'error', message: 'File terlalu besar untuk preview (maksimal 50MB).' });
+      return;
+    }
+
     dispatch({ type: 'start' });
 
     let cancelled = false;
@@ -488,7 +493,7 @@ export default function FilePreview({ file }: FilePreviewProps) {
     if (!isPanning) return;
     const dx = e.clientX - lastMousePos.current.x;
     const dy = e.clientY - lastMousePos.current.y;
-    dispatch({ type: 'panBy', dx, dy: -dy });
+    dispatch({ type: 'panBy', dx, dy });
     lastMousePos.current = { x: e.clientX, y: e.clientY };
   }, [isPanning]);
 

@@ -112,6 +112,12 @@ export default function FileUploader({ files, onFilesAdded, onFileRemove, onClea
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
         role="button"
         tabIndex={0}
         aria-label="Upload area - click or drag files here"

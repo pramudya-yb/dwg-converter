@@ -61,8 +61,8 @@ RUN cd /usr/lib/x86_64-linux-gnu && \
 # Since the official URL changes frequently, we expect the .deb file to be in this folder
 COPY ODAFileConverter*.deb /tmp/odafileconverter.deb
 RUN apt-get update && \
-    apt-get install -y /tmp/odafileconverter.deb || apt-get install -y -f && \
-    rm /tmp/odafileconverter.deb && \
+    (apt-get install -y /tmp/odafileconverter.deb || apt-get install -y -f) && \
+    rm -f /tmp/odafileconverter.deb && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/usr/bin:${PATH}"

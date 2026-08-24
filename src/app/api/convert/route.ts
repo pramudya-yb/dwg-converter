@@ -4,12 +4,12 @@ import { createTempDir, cleanupTempDir, cleanupOldTempDirs, isValidCADFile, sani
 import path from 'path';
 import fs from 'fs/promises';
 import { createWriteStream } from 'fs';
-import type { Archiver } from 'archiver';
+import type { Archiver, ArchiverOptions } from 'archiver';
 import * as archiverModule from 'archiver';
 
-function makeArchive(format: 'zip', opts: archiverModule.ZipOptions): Archiver {
-  // archiver is a CommonJS module that exports a callable factory.
-  return (archiverModule as unknown as (f: 'zip', o: archiverModule.ZipOptions) => Archiver)(format, opts);
+function makeArchive(format: 'zip', opts: ArchiverOptions): Archiver {
+  const factory = (archiverModule as unknown as { default: typeof archiverModule }).default ?? archiverModule;
+  return (factory as unknown as (f: string, o: ArchiverOptions) => Archiver)(format, opts);
 }
 
 async function rebuildFormData(original: FormData): Promise<FormData> {
@@ -74,12 +74,13 @@ export async function POST(request: NextRequest) {
     }
     if (outputFormat === 'SHP' && externalUrl) {
       // SHP requires GDAL/ogr2ogr — forward only shapefile jobs to the microservice.
+      const cleanUrl = externalUrl.replace(/\/+$/, '');
       const forwardData = await rebuildFormData(formData);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 180000);
       let response: Response;
       try {
-        response = await fetch(`${externalUrl}/api/convert`, {
+        response = await fetch(`${cleanUrl}/api/convert`, {
           method: 'POST',
           body: forwardData,
           signal: controller.signal,
